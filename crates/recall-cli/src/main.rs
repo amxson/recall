@@ -33,6 +33,7 @@ fn main() -> ExitCode {
         "index" => run_index(&args[1..]),
         "search" => run_search(&args[1..]),
         "stats" => run_stats(&args[1..]),
+        "chunk" => run_chunk(&args[1..]),
         other => Err(format!("unknown subcommand: {other}")),
     };
 
@@ -155,6 +156,33 @@ fn run_stats(args: &[String]) -> Result<(), String> {
     Ok(())
 }
 
+fn run_chunk(args: &[String]) -> Result<(), String> {
+    let file_path = PathBuf::from(
+        flag_value(args, "--file").ok_or_else(|| "missing required --file <path>".to_string())?,
+    );
+    let chunker_name = flag_value(args, "--chunker").unwrap_or_else(|| "heading".into());
+    let strategy = parse_chunker(&chunker_name)?;
+    let text = fs::read_to_string(&file_path)
+        .map_err(|e| format!("failed to read {}: {e}", file_path.display()))?;
+    let chunks = chunk_document(&text, &strategy).map_err(|e| format!("chunking failed: {e}"))?;
+
+    println!(
+        "{} -> {} chunks (strategy: {chunker_name})\n",
+        file_path.display(),
+        chunks.len()
+    );
+    for chunk in &chunks {
+        let heading = chunk.heading.as_deref().unwrap_or("(no heading)");
+        let words = chunk.text.split_whitespace().count();
+        println!(
+            "[#{:02}] ({words}w) {heading}\n     {}\n",
+            chunk.chunk_index,
+            truncate_preview(&chunk.text, 140)
+        );
+    }
+    Ok(())
+}
+
 fn load_index(path: &Path) -> Result<RecallIndex, String> {
     let raw = fs::read_to_string(path)
         .map_err(|e| format!("failed to read index {}: {e}", path.display()))?;
@@ -196,6 +224,48 @@ recall-cli - local hybrid search CLI for Recall
 USAGE:
   recall-cli index  --out <index.json> [--manifest <path>] [--corpus-dir <dir>] [--chunker fixed|heading|sentence]
   recall-cli search --index <index.json> --query <text> [--top-k 5]
-  recall-cli stats  --index <index.json>"
+  recall-cli stats  --index <index.json>
+  recall-cli chunk  --file <doc.md> [--chunker fixed|heading|sentence]"
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_supported_chunker_names() {
+        assert_eq!(
+            parse_chunker("fixed").unwrap(),
+            ChunkingStrategy::fixed_default()
+        );
+        assert_eq!(
+            parse_chunker("heading").unwrap(),
+            ChunkingStrategy::heading_default()
+        );
+        assert_eq!(
+            parse_chunker("sentence").unwrap(),
+            ChunkingStrategy::sentence_default()
+        );
+        assert!(parse_chunker("unknown").is_err());
+    }
+
+    #[test]
+    fn extracts_flag_values_and_truncates_unicode_safely() {
+        let args = vec![
+            "--query".to_string(),
+            "cors wildcard".to_string(),
+            "--top-k".to_string(),
+            "3".to_string(),
+        ];
+        assert_eq!(
+            flag_value(&args, "--query").as_deref(),
+            Some("cors wildcard")
+        );
+        assert_eq!(flag_value(&args, "--top-k").as_deref(), Some("3"));
+        assert_eq!(flag_value(&args, "--missing"), None);
+
+        assert_eq!(truncate_preview("short", 10), "short");
+        assert_eq!(truncate_preview("hello world", 5), "hello...");
+    }
 }
