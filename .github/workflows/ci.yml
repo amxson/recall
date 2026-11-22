@@ -25,5 +25,7 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Unit tests
         run: cargo test --workspace
+      - name: Check benchmarks compile
+        run: cargo bench -p recall-core --no-run
       - name: Check wasm32 target compilation
         run: cargo check -p recall-wasm --target wasm32-unknown-unknown
