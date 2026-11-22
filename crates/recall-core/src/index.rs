@@ -256,7 +256,9 @@ impl RecallIndex {
     ) -> Result<Vec<SearchResult>, RecallError> {
         let pool = (top_k.saturating_mul(4)).max(50);
         let bm25_hits = self.bm25.search(query, pool);
-        let vector_hits = self.vectors.search(query_embedding, pool)?;
+        let mut vector_hits = self.vectors.search(query_embedding, pool)?;
+        // Exclude orthogonal or negatively correlated vectors from positive RRF boosts
+        vector_hits.retain(|hit| hit.score > 0.0);
         let fused = reciprocal_rank_fusion(
             &bm25_hits,
             &vector_hits,
