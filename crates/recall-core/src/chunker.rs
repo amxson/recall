@@ -343,11 +343,14 @@ fn normalize_whitespace(s: &str) -> String {
 }
 
 /// Extracts a clean plain-text phrase (up to 7 words) suitable for Chrome `#:~:text=` fragments.
+/// Strips markdown links `[label](url)` -> `label`, inline HTML tags, and formatting punctuation.
 fn extract_anchor_phrase(text: &str) -> String {
-    let cleaned: String = text
+    let no_links = strip_markdown_links(text);
+    let no_html = strip_html_tags(&no_links);
+    let cleaned: String = no_html
         .chars()
         .map(|c| {
-            if matches!(c, '`' | '*' | '_' | '[' | ']' | '#' | '>') {
+            if matches!(c, '`' | '*' | '_' | '[' | ']' | '#' | '>' | '"') {
                 ' '
             } else {
                 c
@@ -360,6 +363,47 @@ fn extract_anchor_phrase(text: &str) -> String {
         .take(7)
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+fn strip_markdown_links(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let chars: Vec<char> = input.chars().collect();
+    let mut i = 0;
+
+    while i < chars.len() {
+        if chars[i] == '[' {
+            if let Some(close_bracket) = chars[i + 1..].iter().position(|&c| c == ']') {
+                let close_idx = i + 1 + close_bracket;
+                if close_idx + 1 < chars.len() && chars[close_idx + 1] == '(' {
+                    if let Some(close_paren) = chars[close_idx + 2..].iter().position(|&c| c == ')')
+                    {
+                        for &ch in &chars[i + 1..close_idx] {
+                            out.push(ch);
+                        }
+                        i = close_idx + 2 + close_paren + 1;
+                        continue;
+                    }
+                }
+            }
+        }
+        out.push(chars[i]);
+        i += 1;
+    }
+    out
+}
+
+fn strip_html_tags(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut in_tag = false;
+    for ch in input.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' if in_tag => in_tag = false,
+            _ if !in_tag => out.push(ch),
+            _ => {}
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -447,5 +491,17 @@ BackgroundTasks works inside dependencies too.
             chunks[0].anchor_phrase,
             "FastAPI creates the BackgroundTasks object for you"
         );
+    }
+
+    #[test]
+    fn anchor_phrase_strips_markdown_links_and_inline_html() {
+        let doc = r#"[CORS or "Cross-Origin Resource Sharing"](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) refers to <abbr title="Cross-Origin Resource Sharing">CORS</abbr> browser rules."#;
+        let chunks = chunk_document(doc, &ChunkingStrategy::fixed_default()).unwrap();
+        assert_eq!(
+            chunks[0].anchor_phrase,
+            "CORS or Cross-Origin Resource Sharing refers to"
+        );
+        assert!(!chunks[0].anchor_phrase.contains("https://"));
+        assert!(!chunks[0].anchor_phrase.contains("abbr"));
     }
 }
