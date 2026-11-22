@@ -1,0 +1,4 @@
+{"id": "q01", "category": "exact", "query": "jsonable_encoder convert pydantic model for database", "expected_docs": ["encoder"], "notes": "Example exact-term query — replace or expand with your own 40-60 queries"}
+{"id": "q02", "category": "conceptual", "query": "run something after returning the http response like sending an email", "expected_docs": ["background-tasks"], "notes": "Example memory-style query without naming BackgroundTasks"}
+{"id": "q03", "category": "mixed", "query": "cors wildcard origin with credentials allowed", "expected_docs": ["cors"], "notes": "Example mixed exact + conceptual query"}
+{"id": "q04", "category": "hard", "query": "difference between returning a dict vs response_model filtering extra fields", "expected_docs": ["response-model"], "notes": "Example nuanced passage-level query"}
