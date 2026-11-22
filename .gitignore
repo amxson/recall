@@ -1,0 +1,11 @@
+/target
+**/pkg
+**/node_modules
+**/dist
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.local
+eval/corpus/*.md
+eval/cache/
