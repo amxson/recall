@@ -47,12 +47,14 @@ export interface PageExtractPayload {
 }
 
 export interface IndexPageMetrics {
+  doc_id: string;
   chunk_count: number;
   chunk_ms: number;
   embed_ms: number;
   index_ms: number;
   persist_ms: number;
   total_ms: number;
+  snapshot_bytes: number;
 }
 
 export interface SearchResponse {
@@ -83,3 +85,15 @@ export type OffscreenRequest =
       mode: SearchMode;
       top_k: number;
     };
+
+export type PopupRequest =
+  | { target: "background"; type: "GET_STATS" }
+  | { target: "background"; type: "LIST_DOCS" }
+  | { target: "background"; type: "SAVE_ACTIVE_TAB"; strategy?: ChunkingMode }
+  | { target: "background"; type: "REMOVE_DOC"; doc_id: string }
+  | { target: "background"; type: "SEARCH"; query: string; mode: SearchMode; top_k: number }
+  | { target: "background"; type: "OPEN_RESULT"; url: string; jump_url: string; anchor_phrase: string };
+
+export type MessageResponse<T = unknown> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
