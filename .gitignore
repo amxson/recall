@@ -3,6 +3,7 @@
 **/node_modules
 **/dist
 extension/src/wasm/
+extension/public/ort/
 .DS_Store
 Thumbs.db
 *.log

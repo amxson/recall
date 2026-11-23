@@ -36,3 +36,23 @@ mkdirSync(outDir, { recursive: true });
 cpSync(pkgDir, outDir, { recursive: true });
 rmSync(resolve(outDir, ".gitignore"), { force: true });
 console.log(`Synced recall-wasm artifacts -> ${outDir}`);
+
+// Bundle onnxruntime-web WASM/MJS runtime files locally so MV3 CSP never needs remote script loads.
+const ortSrcDir = resolve(extDir, "node_modules", "onnxruntime-web", "dist");
+const ortOutDir = resolve(extDir, "public", "ort");
+const ortFiles = [
+  "ort-wasm-simd-threaded.mjs",
+  "ort-wasm-simd-threaded.wasm",
+  "ort-wasm-simd-threaded.jsep.mjs",
+  "ort-wasm-simd-threaded.jsep.wasm",
+];
+if (existsSync(ortSrcDir)) {
+  mkdirSync(ortOutDir, { recursive: true });
+  for (const name of ortFiles) {
+    const src = resolve(ortSrcDir, name);
+    if (existsSync(src)) {
+      cpSync(src, resolve(ortOutDir, name));
+    }
+  }
+  console.log(`Synced onnxruntime-web WASM assets -> ${ortOutDir}`);
+}
