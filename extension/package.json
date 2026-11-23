@@ -1,0 +1,22 @@
+{
+  "name": "recall-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "npm run build:wasm && vite build"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.4.0",
+    "@mozilla/readability": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.313",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.8"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Recall",
+  "version": "0.1.0",
+  "description": "Local-first hybrid search for pages you have read. Powered by Rust/WASM and on-device embeddings.",
+  "permissions": ["activeTab", "offscreen", "storage", "scripting"],
+  "background": {
+    "service_worker": "service_worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Recall — Search saved pages",
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+K",
+        "mac": "Alt+K"
+      },
+      "description": "Open Recall search popup"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}

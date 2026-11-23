@@ -1,0 +1,85 @@
+export type ChunkingMode = "fixed" | "heading" | "sentence";
+export type SearchMode = "keyword" | "semantic" | "hybrid";
+
+export interface DraftChunk {
+  chunk_index: number;
+  heading: string | null;
+  text: string;
+  anchor_phrase: string;
+}
+
+export interface DocumentSummary {
+  doc_id: string;
+  url: string;
+  title: string;
+  chunk_count: number;
+  saved_at_ms: number;
+}
+
+export interface IndexStats {
+  document_count: number;
+  chunk_count: number;
+  vector_count: number;
+  vocab_size: number;
+  embedding_dim: number;
+}
+
+export interface SearchResult {
+  chunk_id: number;
+  doc_id: string;
+  url: string;
+  jump_url: string;
+  title: string;
+  heading: string | null;
+  text: string;
+  anchor_phrase: string;
+  score: number;
+  bm25_rank: number | null;
+  bm25_score: number | null;
+  vector_rank: number | null;
+  vector_score: number | null;
+}
+
+export interface PageExtractPayload {
+  url: string;
+  title: string;
+  markdown: string;
+}
+
+export interface IndexPageMetrics {
+  chunk_count: number;
+  chunk_ms: number;
+  embed_ms: number;
+  index_ms: number;
+  persist_ms: number;
+  total_ms: number;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  embed_ms: number;
+  search_ms: number;
+  total_ms: number;
+}
+
+export type OffscreenRequest =
+  | { target: "offscreen"; type: "PING" }
+  | { target: "offscreen"; type: "GET_STATS" }
+  | { target: "offscreen"; type: "LIST_DOCS" }
+  | {
+      target: "offscreen";
+      type: "INDEX_PAGE";
+      payload: PageExtractPayload & { strategy?: ChunkingMode };
+    }
+  | {
+      target: "offscreen";
+      type: "REMOVE_DOC";
+      doc_id: string;
+    }
+  | {
+      target: "offscreen";
+      type: "SEARCH";
+      query: string;
+      mode: SearchMode;
+      top_k: number;
+    };
