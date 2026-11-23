@@ -42,6 +42,20 @@ Benchmarks will be run against a frozen snapshot of the FastAPI tutorial documen
 
 *Status: pending corpus freeze, query authoring, and evaluation runs.*
 
+## Installing the Unpacked Chrome Extension
+
+```bash
+cd extension
+npm ci --ignore-scripts
+npm run build
+```
+
+1. Open `chrome://extensions` in Chrome and enable **Developer mode**.
+2. Click **Load unpacked** and select `extension/dist`.
+3. Open any documentation page or article, press `Alt+K` (or click the Recall toolbar icon), and click **Save this page**.
+
+See [docs/embedding-spike.md](docs/embedding-spike.md) for measured `all-MiniLM-L6-v2` (`q8`) download size, per-page indexing timings, and MV3 offscreen/CSP notes.
+
 ## Development
 
 ```bash
@@ -53,6 +67,9 @@ cargo bench -p recall-core
 
 # Build the WebAssembly package
 wasm-pack build crates/recall-wasm --target web --release
+
+# Typecheck, test, and build the Chrome extension
+cd extension && npm run build && npm run typecheck && npm test
 ```
 
 ## Limitations (v0.1 scope)

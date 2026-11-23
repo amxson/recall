@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "build:wasm": "node scripts/build-wasm.mjs",
+    "build:content": "node scripts/build-content.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "npm run build:wasm && vite build"
+    "build": "npm run build:wasm && vite build && npm run build:content"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.4.0",

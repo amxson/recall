@@ -1,0 +1,295 @@
+import type {
+  DocumentSummary,
+  IndexPageMetrics,
+  IndexStats,
+  MessageResponse,
+  PopupRequest,
+  SearchMode,
+  SearchResponse,
+  SearchResult,
+} from "../shared/types";
+
+const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
+const statsPill = document.getElementById("stats-pill") as HTMLSpanElement;
+const statusBar = document.getElementById("status-bar") as HTMLDivElement;
+const searchInput = document.getElementById("search-input") as HTMLInputElement;
+const latencyReadout = document.getElementById("latency-readout") as HTMLSpanElement;
+const resultsList = document.getElementById("results-list") as HTMLDivElement;
+const docsList = document.getElementById("docs-list") as HTMLDivElement;
+const tabSearch = document.getElementById("tab-search") as HTMLButtonElement;
+const tabSaved = document.getElementById("tab-saved") as HTMLButtonElement;
+const panelSearch = document.getElementById("panel-search") as HTMLElement;
+const panelSaved = document.getElementById("panel-saved") as HTMLElement;
+const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".mode-btn"));
+
+let activeMode: SearchMode = "hybrid";
+let searchTimer: number | null = null;
+let searchSeq = 0;
+
+async function sendBg<T>(msg: PopupRequest): Promise<T> {
+  const resp = (await chrome.runtime.sendMessage(msg)) as MessageResponse<T>;
+  if (!resp || !resp.ok) {
+    throw new Error(resp?.error ?? "background communication failed");
+  }
+  return resp.data;
+}
+
+function showStatus(text: string, isError: boolean = false): void {
+  statusBar.textContent = text;
+  statusBar.classList.toggle("error", isError);
+  statusBar.classList.remove("hidden");
+}
+
+function hideStatus(): void {
+  statusBar.classList.add("hidden");
+}
+
+async function refreshStats(): Promise<void> {
+  try {
+    const stats = await sendBg<IndexStats>({ target: "background", type: "GET_STATS" });
+    statsPill.textContent = `${stats.document_count} pages · ${stats.chunk_count} passages`;
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : String(err), true);
+  }
+}
+
+async function refreshSavedDocs(): Promise<void> {
+  try {
+    const docs = await sendBg<DocumentSummary[]>({ target: "background", type: "LIST_DOCS" });
+    renderDocs(docs);
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : String(err), true);
+  }
+}
+
+function renderDocs(docs: DocumentSummary[]): void {
+  docsList.innerHTML = "";
+  if (docs.length === 0) {
+    docsList.innerHTML = '<p class="empty">No pages saved yet.</p>';
+    return;
+  }
+
+  for (const doc of docs) {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+
+    const info = document.createElement("div");
+    info.className = "doc-info";
+
+    const title = document.createElement("div");
+    title.className = "doc-title";
+    title.textContent = doc.title;
+
+    const meta = document.createElement("div");
+    meta.className = "doc-meta";
+    const dateStr = doc.saved_at_ms ? new Date(doc.saved_at_ms).toLocaleDateString() : "";
+    meta.textContent = `${doc.chunk_count} passages · ${shortHost(doc.url)}${dateStr ? ` · ${dateStr}` : ""}`;
+
+    info.append(title, meta);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "btn-remove";
+    removeBtn.textContent = "Remove";
+    removeBtn.addEventListener("click", async () => {
+      removeBtn.disabled = true;
+      try {
+        await sendBg({ target: "background", type: "REMOVE_DOC", doc_id: doc.doc_id });
+        await Promise.all([refreshStats(), refreshSavedDocs()]);
+      } catch (err) {
+        showStatus(err instanceof Error ? err.message : String(err), true);
+      }
+    });
+
+    row.append(info, removeBtn);
+    docsList.append(row);
+  }
+}
+
+function renderResults(resp: SearchResponse, query: string): void {
+  resultsList.innerHTML = "";
+  if (!query.trim()) {
+    latencyReadout.textContent = "";
+    resultsList.innerHTML =
+      '<p class="empty">Save documentation pages or articles, then search them here by exact term or rough idea.</p>';
+    return;
+  }
+
+  latencyReadout.textContent =
+    activeMode === "keyword"
+      ? `search ${resp.search_ms.toFixed(2)} ms`
+      : `embed ${resp.embed_ms.toFixed(0)} ms · search ${resp.search_ms.toFixed(2)} ms`;
+
+  if (resp.results.length === 0) {
+    resultsList.innerHTML = '<p class="empty">No matching passages found.</p>';
+    return;
+  }
+
+  for (const hit of resp.results) {
+    resultsList.append(buildHitCard(hit));
+  }
+}
+
+function buildHitCard(hit: SearchResult): HTMLButtonElement {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "hit-card";
+
+  const top = document.createElement("div");
+  top.className = "hit-top";
+
+  const title = document.createElement("span");
+  title.className = "hit-title";
+  title.textContent = hit.title;
+
+  const badges = document.createElement("span");
+  badges.className = "hit-badges";
+  if (hit.bm25_rank !== null) {
+    const b = document.createElement("span");
+    b.className = "badge";
+    b.textContent = `BM25 #${hit.bm25_rank}`;
+    badges.append(b);
+  }
+  if (hit.vector_rank !== null) {
+    const v = document.createElement("span");
+    v.className = "badge em";
+    v.textContent = `Vec #${hit.vector_rank}`;
+    badges.append(v);
+  }
+
+  top.append(title, badges);
+  card.append(top);
+
+  if (hit.heading) {
+    const heading = document.createElement("div");
+    heading.className = "hit-heading";
+    heading.textContent = hit.heading;
+    card.append(heading);
+  }
+
+  const snippet = document.createElement("div");
+  snippet.className = "hit-snippet";
+  snippet.textContent = hit.text;
+
+  const urlEl = document.createElement("div");
+  urlEl.className = "hit-url";
+  urlEl.textContent = hit.url;
+
+  card.append(snippet, urlEl);
+
+  card.addEventListener("click", async () => {
+    try {
+      await sendBg({
+        target: "background",
+        type: "OPEN_RESULT",
+        url: hit.url,
+        jump_url: hit.jump_url,
+        anchor_phrase: hit.anchor_phrase,
+      });
+    } catch (err) {
+      showStatus(err instanceof Error ? err.message : String(err), true);
+    }
+  });
+
+  return card;
+}
+
+async function runSearch(): Promise<void> {
+  const query = searchInput.value;
+  if (!query.trim()) {
+    renderResults({ results: [], embed_ms: 0, search_ms: 0, total_ms: 0 }, "");
+    return;
+  }
+
+  const seq = ++searchSeq;
+  latencyReadout.textContent = "searching…";
+  try {
+    const resp = await sendBg<SearchResponse>({
+      target: "background",
+      type: "SEARCH",
+      query,
+      mode: activeMode,
+      top_k: 8,
+    });
+    if (seq !== searchSeq) return;
+    renderResults(resp, query);
+  } catch (err) {
+    if (seq !== searchSeq) return;
+    latencyReadout.textContent = "";
+    showStatus(err instanceof Error ? err.message : String(err), true);
+  }
+}
+
+saveBtn.addEventListener("click", async () => {
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Indexing…";
+  showStatus("Extracting page and computing local MiniLM embeddings…");
+
+  try {
+    const metrics = await sendBg<IndexPageMetrics>({
+      target: "background",
+      type: "SAVE_ACTIVE_TAB",
+      strategy: "heading",
+    });
+    showStatus(
+      `Saved ${metrics.chunk_count} passages in ${Math.round(metrics.total_ms)} ms (embed ${Math.round(metrics.embed_ms)} ms)`
+    );
+    await Promise.all([refreshStats(), refreshSavedDocs()]);
+    if (searchInput.value.trim()) {
+      await runSearch();
+    }
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : String(err), true);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Save this page";
+  }
+});
+
+searchInput.addEventListener("input", () => {
+  hideStatus();
+  if (searchTimer !== null) {
+    window.clearTimeout(searchTimer);
+  }
+  searchTimer = window.setTimeout(() => {
+    void runSearch();
+  }, 140);
+});
+
+for (const btn of modeButtons) {
+  btn.addEventListener("click", () => {
+    activeMode = (btn.dataset.mode as SearchMode) || "hybrid";
+    for (const other of modeButtons) {
+      other.classList.toggle("active", other === btn);
+    }
+    if (searchInput.value.trim()) {
+      void runSearch();
+    }
+  });
+}
+
+tabSearch.addEventListener("click", () => {
+  tabSearch.classList.add("active");
+  tabSaved.classList.remove("active");
+  panelSearch.classList.remove("hidden");
+  panelSaved.classList.add("hidden");
+  searchInput.focus();
+});
+
+tabSaved.addEventListener("click", () => {
+  tabSaved.classList.add("active");
+  tabSearch.classList.remove("active");
+  panelSaved.classList.remove("hidden");
+  panelSearch.classList.add("hidden");
+  void refreshSavedDocs();
+});
+
+function shortHost(raw: string): string {
+  try {
+    return new URL(raw).hostname;
+  } catch {
+    return raw;
+  }
+}
+
+void refreshStats();
