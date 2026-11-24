@@ -9,9 +9,12 @@ import type {
   SearchMode,
   SearchResponse,
 } from "../shared/types";
+import { normalizeUrlToDocId } from "../shared/url";
 import { chunkText, EMBEDDING_DIM, ensureWasmReady, RecallEngine } from "../shared/wasm";
 import { loadSnapshot, saveSnapshot, type SnapshotMeta, type StoredSnapshot } from "../storage/idb";
 import { embedBatch, embedText, type BatchEmbedResult } from "./embedder";
+
+export { normalizeUrlToDocId };
 
 export interface RuntimeDeps {
   ensureWasm: () => Promise<string>;
@@ -35,21 +38,6 @@ const DEFAULT_DEPS: RuntimeDeps = {
   now: () => performance.now(),
   dim: EMBEDDING_DIM,
 };
-
-/**
- * Strips URL hash fragments and normalizes trailing slashes so re-saving the same page
- * from a `#:~:text=` jump link updates the existing document rather than creating a duplicate.
- */
-export function normalizeUrlToDocId(rawUrl: string): string {
-  try {
-    const parsed = new URL(rawUrl);
-    parsed.hash = "";
-    const pathname = parsed.pathname.replace(/\/+$/, "") || "/";
-    return `${parsed.origin}${pathname}${parsed.search}`;
-  } catch {
-    return rawUrl.split("#")[0].replace(/\/+$/, "");
-  }
-}
 
 export class OffscreenRuntime {
   private readonly deps: RuntimeDeps;

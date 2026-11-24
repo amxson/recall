@@ -1,9 +1,12 @@
 import type {
+  ActiveTabStatus,
+  DocumentSummary,
   MessageResponse,
   OffscreenRequest,
   PageExtractPayload,
   PopupRequest,
 } from "../shared/types";
+import { normalizeUrlToDocId } from "../shared/url";
 
 const OFFSCREEN_DOCUMENT_PATH = "offscreen.html";
 
@@ -134,11 +137,33 @@ function highlightFallbackInPage(phrase: string): void {
   }
 }
 
+async function getActiveTabStatus(): Promise<ActiveTabStatus> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const url = tab?.url ?? null;
+  const saveable = Boolean(url && (url.startsWith("http://") || url.startsWith("https://")));
+  if (!url || !saveable) {
+    return { url, saveable: false, already_saved: false };
+  }
+
+  const normalized = normalizeUrlToDocId(url);
+  const resp = await sendToOffscreen<DocumentSummary[]>({
+    target: "offscreen",
+    type: "LIST_DOCS",
+  });
+  const alreadySaved =
+    resp.ok && resp.data.some((doc) => doc.doc_id === normalized || doc.url === normalized);
+  return { url, saveable: true, already_saved: alreadySaved };
+}
+
 async function handlePopupRequest(msg: PopupRequest): Promise<MessageResponse> {
   try {
     switch (msg.type) {
       case "GET_STATS":
         return await sendToOffscreen({ target: "offscreen", type: "GET_STATS" });
+      case "GET_ACTIVE_TAB_STATUS": {
+        const data = await getActiveTabStatus();
+        return { ok: true, data };
+      }
       case "LIST_DOCS":
         return await sendToOffscreen({ target: "offscreen", type: "LIST_DOCS" });
       case "REMOVE_DOC":

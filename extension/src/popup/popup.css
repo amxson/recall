@@ -229,9 +229,20 @@ body {
   transition: border-color 0.12s ease, background 0.12s ease;
 }
 
-.hit-card:hover {
+.hit-card:hover,
+.hit-card.selected {
   background: var(--surface-hover);
-  border-color: #3f3f46;
+  border-color: rgba(51, 224, 146, 0.45);
+}
+
+.kbd-hint {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--dim);
+  display: flex;
+  justify-content: space-between;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
 }
 
 .hit-top {

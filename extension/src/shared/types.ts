@@ -86,8 +86,15 @@ export type OffscreenRequest =
       top_k: number;
     };
 
+export interface ActiveTabStatus {
+  url: string | null;
+  saveable: boolean;
+  already_saved: boolean;
+}
+
 export type PopupRequest =
   | { target: "background"; type: "GET_STATS" }
+  | { target: "background"; type: "GET_ACTIVE_TAB_STATUS" }
   | { target: "background"; type: "LIST_DOCS" }
   | { target: "background"; type: "SAVE_ACTIVE_TAB"; strategy?: ChunkingMode }
   | { target: "background"; type: "REMOVE_DOC"; doc_id: string }

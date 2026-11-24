@@ -1,4 +1,5 @@
 import type {
+  ActiveTabStatus,
   DocumentSummary,
   IndexPageMetrics,
   IndexStats,
@@ -25,6 +26,9 @@ const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".mo
 let activeMode: SearchMode = "hybrid";
 let searchTimer: number | null = null;
 let searchSeq = 0;
+let currentHits: SearchResult[] = [];
+let selectedIdx = 0;
+let saveButtonIdleLabel = "Save this page";
 
 async function sendBg<T>(msg: PopupRequest): Promise<T> {
   const resp = (await chrome.runtime.sendMessage(msg)) as MessageResponse<T>;
@@ -46,8 +50,20 @@ function hideStatus(): void {
 
 async function refreshStats(): Promise<void> {
   try {
-    const stats = await sendBg<IndexStats>({ target: "background", type: "GET_STATS" });
+    const [stats, tabStatus] = await Promise.all([
+      sendBg<IndexStats>({ target: "background", type: "GET_STATS" }),
+      sendBg<ActiveTabStatus>({ target: "background", type: "GET_ACTIVE_TAB_STATUS" }),
+    ]);
     statsPill.textContent = `${stats.document_count} pages · ${stats.chunk_count} passages`;
+    if (!tabStatus.saveable) {
+      saveButtonIdleLabel = "Page not saveable";
+      saveBtn.textContent = saveButtonIdleLabel;
+      saveBtn.disabled = true;
+    } else {
+      saveButtonIdleLabel = tabStatus.already_saved ? "Re-index page" : "Save this page";
+      saveBtn.textContent = saveButtonIdleLabel;
+      saveBtn.disabled = false;
+    }
   } catch (err) {
     showStatus(err instanceof Error ? err.message : String(err), true);
   }
@@ -108,6 +124,9 @@ function renderDocs(docs: DocumentSummary[]): void {
 
 function renderResults(resp: SearchResponse, query: string): void {
   resultsList.innerHTML = "";
+  currentHits = resp.results;
+  selectedIdx = 0;
+
   if (!query.trim()) {
     latencyReadout.textContent = "";
     resultsList.innerHTML =
@@ -125,8 +144,40 @@ function renderResults(resp: SearchResponse, query: string): void {
     return;
   }
 
-  for (const hit of resp.results) {
-    resultsList.append(buildHitCard(hit));
+  resp.results.forEach((hit, idx) => {
+    const card = buildHitCard(hit);
+    if (idx === selectedIdx) {
+      card.classList.add("selected");
+    }
+    card.addEventListener("mouseenter", () => setSelectedIndex(idx));
+    resultsList.append(card);
+  });
+}
+
+function setSelectedIndex(next: number): void {
+  if (currentHits.length === 0) return;
+  selectedIdx = (next + currentHits.length) % currentHits.length;
+  const cards = resultsList.querySelectorAll<HTMLButtonElement>(".hit-card");
+  cards.forEach((el, idx) => {
+    const active = idx === selectedIdx;
+    el.classList.toggle("selected", active);
+    if (active) {
+      el.scrollIntoView({ block: "nearest" });
+    }
+  });
+}
+
+async function openHit(hit: SearchResult): Promise<void> {
+  try {
+    await sendBg({
+      target: "background",
+      type: "OPEN_RESULT",
+      url: hit.url,
+      jump_url: hit.jump_url,
+      anchor_phrase: hit.anchor_phrase,
+    });
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : String(err), true);
   }
 }
 
@@ -177,18 +228,8 @@ function buildHitCard(hit: SearchResult): HTMLButtonElement {
 
   card.append(snippet, urlEl);
 
-  card.addEventListener("click", async () => {
-    try {
-      await sendBg({
-        target: "background",
-        type: "OPEN_RESULT",
-        url: hit.url,
-        jump_url: hit.jump_url,
-        anchor_phrase: hit.anchor_phrase,
-      });
-    } catch (err) {
-      showStatus(err instanceof Error ? err.message : String(err), true);
-    }
+  card.addEventListener("click", () => {
+    void openHit(hit);
   });
 
   return card;
@@ -242,7 +283,24 @@ saveBtn.addEventListener("click", async () => {
     showStatus(err instanceof Error ? err.message : String(err), true);
   } finally {
     saveBtn.disabled = false;
-    saveBtn.textContent = "Save this page";
+    saveBtn.textContent = saveButtonIdleLabel;
+  }
+});
+
+searchInput.addEventListener("keydown", (event) => {
+  if (currentHits.length === 0) return;
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    setSelectedIndex(selectedIdx + 1);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    setSelectedIndex(selectedIdx - 1);
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    const hit = currentHits[selectedIdx];
+    if (hit) {
+      void openHit(hit);
+    }
   }
 });
 
