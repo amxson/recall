@@ -201,6 +201,11 @@ async function handlePopupRequest(msg: PopupRequest): Promise<MessageResponse> {
           type: "REMOVE_DOC",
           doc_id: msg.doc_id,
         });
+      case "CLEAR_INDEX":
+        return await sendToOffscreen({
+          target: "offscreen",
+          type: "CLEAR_INDEX",
+        });
       case "SEARCH":
         return await sendToOffscreen({
           target: "offscreen",

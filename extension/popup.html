@@ -56,6 +56,18 @@
       </section>
 
       <section id="panel-saved" class="panel hidden">
+        <div class="settings-bar">
+          <label class="chunk-label" for="chunker-select">
+            Chunking
+            <select id="chunker-select" class="chunk-select">
+              <option value="heading">Heading-aware</option>
+              <option value="fixed">Fixed-size</option>
+              <option value="sentence">Sentence-window</option>
+            </select>
+          </label>
+          <button id="clear-btn" type="button" class="btn-remove">Clear index</button>
+        </div>
+        <div id="storage-bar" class="storage-bar"></div>
         <div id="docs-list" class="docs-list">
           <p class="empty">No pages saved yet.</p>
         </div>

@@ -22,6 +22,7 @@ export interface IndexStats {
   vector_count: number;
   vocab_size: number;
   embedding_dim: number;
+  snapshot_bytes?: number;
 }
 
 export interface SearchResult {
@@ -80,11 +81,23 @@ export type OffscreenRequest =
     }
   | {
       target: "offscreen";
+      type: "CLEAR_INDEX";
+    }
+  | {
+      target: "offscreen";
       type: "SEARCH";
       query: string;
       mode: SearchMode;
       top_k: number;
     };
+
+export interface ModelProgressBroadcast {
+  target: "popup";
+  type: "MODEL_PROGRESS";
+  status: string;
+  file?: string;
+  progress?: number;
+}
 
 export interface ActiveTabStatus {
   url: string | null;
@@ -98,6 +111,7 @@ export type PopupRequest =
   | { target: "background"; type: "LIST_DOCS" }
   | { target: "background"; type: "SAVE_ACTIVE_TAB"; strategy?: ChunkingMode }
   | { target: "background"; type: "REMOVE_DOC"; doc_id: string }
+  | { target: "background"; type: "CLEAR_INDEX" }
   | { target: "background"; type: "SEARCH"; query: string; mode: SearchMode; top_k: number }
   | { target: "background"; type: "OPEN_RESULT"; url: string; jump_url: string; anchor_phrase: string };
 

@@ -39,6 +39,9 @@ function createMemoryRuntime() {
       saved = { key: "primary", json, meta };
       return meta;
     },
+    clearSnapshot: async () => {
+      saved = null;
+    },
     embedText: async (text) => {
       embedCalls += 1;
       return stubVector(text);
@@ -166,6 +169,7 @@ describe("OffscreenRuntime", () => {
         documentCount: stats.documentCount,
         chunkCount: stats.chunkCount,
       }),
+      clearSnapshot: async () => {},
       embedText: async (t) => stubVector(t),
       embedBatch: async () => ({ flat: new Float32Array(0), dim: 3, elapsedMs: 0 }),
     });
@@ -179,6 +183,27 @@ describe("OffscreenRuntime", () => {
     });
     expect(resp.ok).toBe(true);
     expect((resp as { ok: true; data: SearchResponse }).data.results[0].title).toBe("CORS");
+
+    const statsBefore = (
+      (await second.handleMessage({ target: "offscreen", type: "GET_STATS" })) as {
+        ok: true;
+        data: IndexStats;
+      }
+    ).data;
+    expect(statsBefore.snapshot_bytes).toBeGreaterThan(0);
+
+    const clearResp = await second.handleMessage({ target: "offscreen", type: "CLEAR_INDEX" });
+    expect(clearResp.ok).toBe(true);
+
+    const statsAfter = (
+      (await second.handleMessage({ target: "offscreen", type: "GET_STATS" })) as {
+        ok: true;
+        data: IndexStats;
+      }
+    ).data;
+    expect(statsAfter.document_count).toBe(0);
+    expect(statsAfter.chunk_count).toBe(0);
+    expect(statsAfter.snapshot_bytes).toBe(0);
     second.dispose();
   });
 });

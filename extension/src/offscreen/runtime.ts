@@ -11,7 +11,13 @@ import type {
 } from "../shared/types";
 import { normalizeUrlToDocId } from "../shared/url";
 import { chunkText, EMBEDDING_DIM, ensureWasmReady, RecallEngine } from "../shared/wasm";
-import { loadSnapshot, saveSnapshot, type SnapshotMeta, type StoredSnapshot } from "../storage/idb";
+import {
+  clearSnapshot,
+  loadSnapshot,
+  saveSnapshot,
+  type SnapshotMeta,
+  type StoredSnapshot,
+} from "../storage/idb";
 import { embedBatch, embedText, type BatchEmbedResult } from "./embedder";
 
 export { normalizeUrlToDocId };
@@ -23,6 +29,7 @@ export interface RuntimeDeps {
     json: string,
     stats: { documentCount: number; chunkCount: number }
   ) => Promise<SnapshotMeta>;
+  clearSnapshot: () => Promise<void>;
   embedText: (text: string) => Promise<Float32Array>;
   embedBatch: (texts: string[], batchSize?: number) => Promise<BatchEmbedResult>;
   now: () => number;
@@ -33,6 +40,7 @@ const DEFAULT_DEPS: RuntimeDeps = {
   ensureWasm: () => ensureWasmReady(),
   loadSnapshot: () => loadSnapshot(),
   saveSnapshot: (json, stats) => saveSnapshot(json, stats),
+  clearSnapshot: () => clearSnapshot(),
   embedText: (text) => embedText(text),
   embedBatch: (texts, batchSize) => embedBatch(texts, batchSize),
   now: () => performance.now(),
@@ -44,6 +52,7 @@ export class OffscreenRuntime {
   private engine: RecallEngine | null = null;
   private initPromise: Promise<RecallEngine> | null = null;
   private writeQueue: Promise<void> = Promise.resolve();
+  private snapshotBytes = 0;
 
   constructor(overrides: Partial<RuntimeDeps> = {}) {
     this.deps = { ...DEFAULT_DEPS, ...overrides };
@@ -58,6 +67,7 @@ export class OffscreenRuntime {
         const engine = saved?.json
           ? RecallEngine.fromSnapshot(saved.json)
           : RecallEngine.create(this.deps.dim);
+        this.snapshotBytes = saved?.meta.byteLength ?? 0;
         this.engine = engine;
         return engine;
       })().catch((err) => {
@@ -86,7 +96,11 @@ export class OffscreenRuntime {
         }
         case "GET_STATS": {
           const engine = await this.getEngine();
-          return { ok: true, data: engine.stats() satisfies IndexStats };
+          const stats: IndexStats = {
+            ...engine.stats(),
+            snapshot_bytes: this.snapshotBytes,
+          };
+          return { ok: true, data: stats };
         }
         case "LIST_DOCS": {
           const engine = await this.getEngine();
@@ -99,6 +113,10 @@ export class OffscreenRuntime {
         case "REMOVE_DOC": {
           const removed = await this.removeDocument(msg.doc_id);
           return { ok: true, data: { removed } };
+        }
+        case "CLEAR_INDEX": {
+          await this.clearIndex();
+          return { ok: true, data: { cleared: true } };
         }
         case "SEARCH": {
           const data = await this.search(msg.query, msg.mode, msg.top_k);
@@ -150,6 +168,7 @@ export class OffscreenRuntime {
         documentCount: stats.document_count,
         chunkCount: stats.chunk_count,
       });
+      this.snapshotBytes = meta.byteLength;
       const persistMs = this.deps.now() - tPersistStart;
 
       return {
@@ -172,12 +191,26 @@ export class OffscreenRuntime {
       if (removed) {
         const snapshot = engine.toSnapshot();
         const stats = engine.stats();
-        await this.deps.saveSnapshot(snapshot, {
+        const meta = await this.deps.saveSnapshot(snapshot, {
           documentCount: stats.document_count,
           chunkCount: stats.chunk_count,
         });
+        this.snapshotBytes = meta.byteLength;
       }
       return removed;
+    });
+  }
+
+  async clearIndex(): Promise<void> {
+    return this.enqueueWrite(async () => {
+      await this.deps.ensureWasm();
+      if (this.engine) {
+        this.engine.free();
+      }
+      this.engine = RecallEngine.create(this.deps.dim);
+      this.initPromise = Promise.resolve(this.engine);
+      this.snapshotBytes = 0;
+      await this.deps.clearSnapshot();
     });
   }
 

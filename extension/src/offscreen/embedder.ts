@@ -25,6 +25,13 @@ export type TextEmbedderFn = (
 
 let extractorPromise: Promise<TextEmbedderFn> | null = null;
 let configured = false;
+let progressListener: ((event: EmbedderProgress) => void) | null = null;
+
+export function setEmbedderProgressListener(
+  listener: ((event: EmbedderProgress) => void) | null
+): void {
+  progressListener = listener;
+}
 
 export function configureTransformersForMv3(): void {
   if (configured) return;
@@ -58,7 +65,10 @@ export function getEmbedder(
     extractorPromise = createPipeline("feature-extraction", MODEL_ID, {
       dtype: "q8",
       device: "wasm",
-      progress_callback: onProgress,
+      progress_callback: (event: EmbedderProgress) => {
+        onProgress?.(event);
+        progressListener?.(event);
+      },
     }).catch((err) => {
       extractorPromise = null;
       throw err;

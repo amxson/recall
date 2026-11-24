@@ -1,9 +1,11 @@
 import type {
   ActiveTabStatus,
+  ChunkingMode,
   DocumentSummary,
   IndexPageMetrics,
   IndexStats,
   MessageResponse,
+  ModelProgressBroadcast,
   PopupRequest,
   SearchMode,
   SearchResponse,
@@ -21,14 +23,19 @@ const tabSearch = document.getElementById("tab-search") as HTMLButtonElement;
 const tabSaved = document.getElementById("tab-saved") as HTMLButtonElement;
 const panelSearch = document.getElementById("panel-search") as HTMLElement;
 const panelSaved = document.getElementById("panel-saved") as HTMLElement;
+const chunkerSelect = document.getElementById("chunker-select") as HTMLSelectElement;
+const storageBar = document.getElementById("storage-bar") as HTMLDivElement;
+const clearBtn = document.getElementById("clear-btn") as HTMLButtonElement;
 const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".mode-btn"));
 
 let activeMode: SearchMode = "hybrid";
+let activeChunker: ChunkingMode = "heading";
 let searchTimer: number | null = null;
 let searchSeq = 0;
 let currentHits: SearchResult[] = [];
 let selectedIdx = 0;
 let saveButtonIdleLabel = "Save this page";
+let clearArmed = false;
 
 async function sendBg<T>(msg: PopupRequest): Promise<T> {
   const resp = (await chrome.runtime.sendMessage(msg)) as MessageResponse<T>;
@@ -55,6 +62,8 @@ async function refreshStats(): Promise<void> {
       sendBg<ActiveTabStatus>({ target: "background", type: "GET_ACTIVE_TAB_STATUS" }),
     ]);
     statsPill.textContent = `${stats.document_count} pages · ${stats.chunk_count} passages`;
+    const kb = ((stats.snapshot_bytes ?? 0) / 1024).toFixed(1);
+    storageBar.textContent = `IndexedDB: ${kb} KB · ${stats.vector_count} vectors (${stats.embedding_dim}d) · ${stats.vocab_size} terms`;
     if (!tabStatus.saveable) {
       saveButtonIdleLabel = "Page not saveable";
       saveBtn.textContent = saveButtonIdleLabel;
@@ -270,7 +279,7 @@ saveBtn.addEventListener("click", async () => {
     const metrics = await sendBg<IndexPageMetrics>({
       target: "background",
       type: "SAVE_ACTIVE_TAB",
-      strategy: "heading",
+      strategy: activeChunker,
     });
     showStatus(
       `Saved ${metrics.chunk_count} passages in ${Math.round(metrics.total_ms)} ms (embed ${Math.round(metrics.embed_ms)} ms)`
@@ -350,4 +359,59 @@ function shortHost(raw: string): string {
   }
 }
 
-void refreshStats();
+chunkerSelect.addEventListener("change", () => {
+  activeChunker = (chunkerSelect.value as ChunkingMode) || "heading";
+  void chrome.storage?.local?.set({ recall_chunker: activeChunker });
+});
+
+clearBtn.addEventListener("click", async () => {
+  if (!clearArmed) {
+    clearArmed = true;
+    clearBtn.textContent = "Click again to clear";
+    window.setTimeout(() => {
+      clearArmed = false;
+      clearBtn.textContent = "Clear index";
+    }, 3500);
+    return;
+  }
+
+  clearArmed = false;
+  clearBtn.disabled = true;
+  clearBtn.textContent = "Clearing…";
+  try {
+    await sendBg({ target: "background", type: "CLEAR_INDEX" });
+    showStatus("Local index cleared.");
+    await Promise.all([refreshStats(), refreshSavedDocs()]);
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : String(err), true);
+  } finally {
+    clearBtn.disabled = false;
+    clearBtn.textContent = "Clear index";
+  }
+});
+
+chrome.runtime.onMessage.addListener((message: unknown) => {
+  if (!message || typeof message !== "object") return;
+  const msg = message as Partial<ModelProgressBroadcast>;
+  if (msg.target !== "popup" || msg.type !== "MODEL_PROGRESS") return;
+  if (typeof msg.progress === "number") {
+    const label = msg.file ? ` (${msg.file})` : "";
+    showStatus(`Downloading local model${label}… ${msg.progress}%`);
+  }
+});
+
+async function bootstrap(): Promise<void> {
+  try {
+    const stored = await chrome.storage?.local?.get("recall_chunker");
+    const saved = stored?.recall_chunker as ChunkingMode | undefined;
+    if (saved && ["heading", "fixed", "sentence"].includes(saved)) {
+      activeChunker = saved;
+      chunkerSelect.value = saved;
+    }
+  } catch {
+    // Ignore storage read errors outside extension context
+  }
+  await refreshStats();
+}
+
+void bootstrap();
