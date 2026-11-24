@@ -105,9 +105,11 @@ async function openResultTab(
 }
 
 function highlightFallbackInPage(phrase: string): void {
-  const needle = phrase.trim().toLowerCase();
+  const normalize = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+  const needle = normalize(phrase);
   if (!needle || needle.length < 8) return;
 
+  // Prefer matching a single text node first for surgical inline highlighting
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let node: Node | null;
   while ((node = walker.nextNode())) {
@@ -130,10 +132,37 @@ function highlightFallbackInPage(phrase: string): void {
     try {
       range.surroundContents(mark);
       mark.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
     } catch {
       parent.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
     }
-    break;
+  }
+
+  // Fallback for phrases split across inline tags like <code> or <strong>
+  const blocks = document.querySelectorAll<HTMLElement>(
+    "p, li, dd, blockquote, h1, h2, h3, h4, td"
+  );
+  for (const el of blocks) {
+    const blockText = normalize(el.textContent ?? "");
+    if (!blockText.includes(needle)) continue;
+
+    const prevBg = el.style.backgroundColor;
+    const prevOutline = el.style.outline;
+    const prevTransition = el.style.transition;
+
+    el.style.transition = "background-color 0.4s ease, outline-color 0.4s ease";
+    el.style.backgroundColor = "rgba(51, 224, 146, 0.18)";
+    el.style.outline = "2px solid rgba(51, 224, 146, 0.55)";
+    el.style.borderRadius = "4px";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    window.setTimeout(() => {
+      el.style.backgroundColor = prevBg;
+      el.style.outline = prevOutline;
+      el.style.transition = prevTransition;
+    }, 4500);
+    return;
   }
 }
 
