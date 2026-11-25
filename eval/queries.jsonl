@@ -1,0 +1,50 @@
+{"id":"q01","category":"exact","query":"jsonable_encoder convert pydantic model to json compatible dict","expected_docs":["encoder"]}
+{"id":"q02","category":"exact","query":"CORSMiddleware allow_origins allow_credentials","expected_docs":["cors"]}
+{"id":"q03","category":"exact","query":"raise HTTPException with custom headers","expected_docs":["handling-errors"]}
+{"id":"q04","category":"exact","query":"UploadFile vs bytes File parameter","expected_docs":["request-files"]}
+{"id":"q05","category":"exact","query":"TestClient httpx pytest endpoint tests","expected_docs":["testing"]}
+{"id":"q06","category":"exact","query":"APIRouter include_router prefix tags multiple files","expected_docs":["bigger-applications"]}
+{"id":"q07","category":"exact","query":"ServerSentEvent Last-Event-ID resume stream","expected_docs":["server-sent-events"]}
+{"id":"q08","category":"exact","query":"mount StaticFiles directory html","expected_docs":["static-files"]}
+{"id":"q09","category":"exact","query":"SQLModel Session create_engine relational tables","expected_docs":["sql-databases"]}
+{"id":"q10","category":"exact","query":"Header convert_underscores disable automatic underscore conversion","expected_docs":["header-params","header-param-models"]}
+{"id":"q11","category":"exact","query":"Path ge le gt numeric validation","expected_docs":["path-params-numeric-validations"]}
+{"id":"q12","category":"exact","query":"Field description title validation on BaseModel attributes","expected_docs":["body-fields"]}
+{"id":"q13","category":"exact","query":"openapi_tags docs_url redoc_url license_info","expected_docs":["metadata"]}
+{"id":"q14","category":"conceptual","query":"run slow cleanup work like sending an email after already returning the response","expected_docs":["background-tasks"]}
+{"id":"q15","category":"conceptual","query":"stop browser blocking frontend requests to backend on another port or domain","expected_docs":["cors"]}
+{"id":"q16","category":"conceptual","query":"strip sensitive fields like password before sending object back to client","expected_docs":["response-model"]}
+{"id":"q17","category":"conceptual","query":"intercept every incoming request and outgoing response globally to time it","expected_docs":["middleware"]}
+{"id":"q18","category":"conceptual","query":"override built in validation error payload format with custom json","expected_docs":["handling-errors"]}
+{"id":"q19","category":"conceptual","query":"update only the fields the user actually sent without wiping existing ones","expected_docs":["body-updates"]}
+{"id":"q20","category":"conceptual","query":"accept both uploaded attachments and normal text inputs in one multipart request","expected_docs":["request-forms-and-files"]}
+{"id":"q21","category":"conceptual","query":"run app directly from python script to hit breakpoints in editor","expected_docs":["debugging"]}
+{"id":"q22","category":"conceptual","query":"push one way live updates from server to browser over http connection","expected_docs":["server-sent-events"]}
+{"id":"q23","category":"conceptual","query":"send newline delimited json objects incrementally as they are generated","expected_docs":["stream-json-lines"]}
+{"id":"q24","category":"conceptual","query":"serve compiled react single page app with fallback to index page for unknown routes","expected_docs":["frontend"]}
+{"id":"q25","category":"conceptual","query":"mark an older api route as deprecated in generated documentation","expected_docs":["path-operation-configuration"]}
+{"id":"q26","category":"conceptual","query":"show realistic sample payload values inside swagger interactive docs","expected_docs":["schema-extra-example"]}
+{"id":"q27","category":"conceptual","query":"avoid repeating shared fields across input user model and database user model","expected_docs":["extra-models"]}
+{"id":"q28","category":"conceptual","query":"parse uuid datetime timedelta and decimal fields automatically in requests","expected_docs":["extra-data-types"]}
+{"id":"q29","category":"mixed","query":"pydantic model forbid extra cookies","expected_docs":["cookie-param-models"]}
+{"id":"q30","category":"mixed","query":"pydantic model forbid extra query parameters","expected_docs":["query-param-models"]}
+{"id":"q31","category":"mixed","query":"pydantic model forbid extra form fields","expected_docs":["request-form-models"]}
+{"id":"q32","category":"mixed","query":"multiple middleware execution order how requests pass through","expected_docs":["middleware"]}
+{"id":"q33","category":"mixed","query":"query parameter Annotated string min_length max_length regex pattern","expected_docs":["query-params-str-validations"]}
+{"id":"q34","category":"mixed","query":"CORS wildcard origin cannot be used when credentials are enabled","expected_docs":["cors"]}
+{"id":"q35","category":"mixed","query":"nested pydantic models list of submodels and unique set types","expected_docs":["body-nested-models"]}
+{"id":"q36","category":"mixed","query":"response status_code 201 created shortcut constants","expected_docs":["response-status-code"]}
+{"id":"q37","category":"mixed","query":"read form urlencoded login username password fields","expected_docs":["request-forms"]}
+{"id":"q38","category":"mixed","query":"read browser cookie values with Cookie parameter","expected_docs":["cookie-params"]}
+{"id":"q39","category":"mixed","query":"embed single pydantic body parameter under a json key","expected_docs":["body-multiple-params"]}
+{"id":"q40","category":"mixed","query":"BackgroundTasks used inside dependency injection sub-dependencies","expected_docs":["background-tasks"]}
+{"id":"q41","category":"hard","query":"when to stream json lines instead of server sent events","expected_docs":["stream-json-lines","server-sent-events"]}
+{"id":"q42","category":"hard","query":"receive multiple values for the same repeated http header name","expected_docs":["header-params"]}
+{"id":"q43","category":"hard","query":"parameter ordering trick in python when non-default path param follows default query param","expected_docs":["path-params-numeric-validations"]}
+{"id":"q44","category":"hard","query":"pass a file path containing slashes inside a url path parameter","expected_docs":["path-params"]}
+{"id":"q45","category":"hard","query":"return union of two different pydantic response types using anyOf","expected_docs":["extra-models"]}
+{"id":"q46","category":"hard","query":"difference between returning a subclass directly vs declaring response_model to filter fields","expected_docs":["response-model"]}
+{"id":"q47","category":"hard","query":"how boolean query values like yes on 1 true get converted automatically","expected_docs":["query-params"]}
+{"id":"q48","category":"hard","query":"use markdown docstring inside endpoint function as openapi description","expected_docs":["path-operation-configuration"]}
+{"id":"q49","category":"hard","query":"configure app entrypoint in pyproject.toml for multi module project","expected_docs":["bigger-applications"]}
+{"id":"q50","category":"hard","query":"prevent single page app fallback from masking missing api or asset files with custom 404","expected_docs":["frontend"]}
