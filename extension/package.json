@@ -8,7 +8,8 @@
     "build:content": "node scripts/build-content.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "npm run build:wasm && vite build && npm run build:content"
+    "build": "npm run build:wasm && vite build && npm run build:content",
+    "package": "npm run build && node scripts/package-zip.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.4.0",
