@@ -31,16 +31,23 @@ web/             # Public zero-install demo with pre-indexed corpus and benchmar
 
 ## Benchmarks
 
-Benchmarks will be run against a frozen snapshot of the FastAPI tutorial documentation using hand-written queries written prior to ranking adjustments.
+Measured against a frozen snapshot of 40 FastAPI tutorial docs (`v0.165.0`, 32,824 words) using 50 pre-written queries committed in [eval/queries.jsonl](eval/queries.jsonl) prior to running [eval/run_benchmark.mjs](eval/run_benchmark.mjs) (`Xenova/all-MiniLM-L6-v2` `q8`, `recall-wasm`, Intel i7-1165G7, Node v26.13):
 
-| Method | Chunker | Recall@5 | MRR@10 | NDCG@10 | p50 (ms) | p95 (ms) |
-| --- | --- | --- | --- | --- | --- | --- |
-| BM25 | Fixed | TBD | TBD | TBD | TBD | TBD |
-| Vector | Fixed | TBD | TBD | TBD | TBD | TBD |
-| Hybrid (RRF) | Heading-aware | TBD | TBD | TBD | TBD | TBD |
-| Hybrid (RRF) | Sentence-window | TBD | TBD | TBD | TBD | TBD |
+| Method | Chunker (chunks) | R@1 | R@5 | MRR@10 | NDCG@10 | p50 (ms) | p95 (ms) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| BM25 | Fixed (298) | 80.0% | 100.0% | 0.893 | 0.921 | 0.134 | 0.345 |
+| Vector | Fixed (298) | 90.0% | 100.0% | 0.942 | 0.957 | 0.225 | 0.325 |
+| **Hybrid (RRF)** | **Fixed (298)** | **94.0%** | **100.0%** | **0.970** | **0.978** | **0.282** | **0.437** |
+| BM25 | Heading (430) | 78.0% | 100.0% | 0.872 | 0.905 | 0.118 | 0.180 |
+| Vector | Heading (430) | 82.0% | 100.0% | 0.891 | 0.918 | 0.315 | 0.608 |
+| **Hybrid (RRF)** | **Heading (430)** | **88.0%** | **100.0%** | **0.937** | **0.953** | **0.368** | **0.717** |
+| BM25 | Sentence (690) | 80.0% | 100.0% | 0.882 | 0.912 | 0.177 | 0.270 |
+| Vector | Sentence (690) | 78.0% | 98.0% | 0.859 | 0.889 | 0.507 | 0.703 |
+| **Hybrid (RRF)** | **Sentence (690)** | **84.0%** | **100.0%** | **0.903** | **0.928** | **0.536** | **0.734** |
 
-*Status: pending corpus freeze, query authoring, and evaluation runs.*
+- **Native Rust scaling (`criterion`, 384-dim):** Hybrid RRF runs in `0.53 ms` at 500 passages, `1.77 ms` at 2,000 passages, and `3.93 ms` at 5,000 passages.
+- **Key surprise:** Fixed-size 140w chunking beat heading-aware (`MRR 0.970` vs `0.937`) because FastAPI docs contain many 1–2 sentence sub-sections that starve MiniLM of context; heading-aware trades ~0.03 MRR for cleaner jump-back section titles.
+- See [docs/benchmarks.md](docs/benchmarks.md) for per-category scores, concrete failure cases (including queries where Hybrid lost to BM25 or Vector), and raw JSON artifacts.
 
 ## Installing the Unpacked Chrome Extension
 
