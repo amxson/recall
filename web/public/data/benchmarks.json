@@ -1,0 +1,621 @@
+{
+  "generated_at": "2026-11-25T16:42:17.643Z",
+  "corpus": {
+    "source_repo": "fastapi/fastapi",
+    "tag": "0.165.0",
+    "commit_sha": "05e6df7e906c3decba377c37548019973f40bf15",
+    "documents": 40,
+    "total_words": 32824
+  },
+  "queries": {
+    "count": 50,
+    "categories": {
+      "exact": 13,
+      "conceptual": 15,
+      "mixed": 12,
+      "hard": 10
+    }
+  },
+  "environment": {
+    "model": "Xenova/all-MiniLM-L6-v2",
+    "dtype": "q8",
+    "rrf_k": 60,
+    "node": "v26.13.0",
+    "platform": "win32-x64",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz"
+  },
+  "summary_table": [
+    {
+      "method": "bm25",
+      "strategy": "fixed",
+      "chunks": 298,
+      "recall_at_1": 0.8,
+      "recall_at_5": 1,
+      "mrr_at_10": 0.8933,
+      "ndcg_at_10": 0.9209,
+      "p50_ms": 0.134,
+      "p95_ms": 0.345,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 0.9231,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9615,
+          "ndcg_at_10": 0.9716
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.8,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.8889,
+          "ndcg_at_10": 0.9175
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 0.8333,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9028,
+          "ndcg_at_10": 0.9276
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 0.6,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.8,
+          "ndcg_at_10": 0.8524
+        }
+      },
+      "misses_at_5_count": 0
+    },
+    {
+      "method": "vector",
+      "strategy": "fixed",
+      "chunks": 298,
+      "recall_at_1": 0.9,
+      "recall_at_5": 1,
+      "mrr_at_10": 0.9417,
+      "ndcg_at_10": 0.9565,
+      "p50_ms": 0.225,
+      "p95_ms": 0.325,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 0.9231,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9487,
+          "ndcg_at_10": 0.9615
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.8667,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9167,
+          "ndcg_at_10": 0.9374
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 0.8333,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9167,
+          "ndcg_at_10": 0.9385
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 1,
+          "recall_at_5": 1,
+          "mrr_at_10": 1,
+          "ndcg_at_10": 1
+        }
+      },
+      "misses_at_5_count": 0
+    },
+    {
+      "method": "hybrid",
+      "strategy": "fixed",
+      "chunks": 298,
+      "recall_at_1": 0.94,
+      "recall_at_5": 1,
+      "mrr_at_10": 0.97,
+      "ndcg_at_10": 0.9779,
+      "p50_ms": 0.282,
+      "p95_ms": 0.437,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 0.9231,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9615,
+          "ndcg_at_10": 0.9716
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.9333,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9667,
+          "ndcg_at_10": 0.9754
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 1,
+          "recall_at_5": 1,
+          "mrr_at_10": 1,
+          "ndcg_at_10": 1
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 0.9,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.95,
+          "ndcg_at_10": 0.9631
+        }
+      },
+      "misses_at_5_count": 0
+    },
+    {
+      "method": "bm25",
+      "strategy": "heading",
+      "chunks": 430,
+      "recall_at_1": 0.78,
+      "recall_at_5": 1,
+      "mrr_at_10": 0.8723,
+      "ndcg_at_10": 0.9047,
+      "p50_ms": 0.118,
+      "p95_ms": 0.18,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 0.9231,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9487,
+          "ndcg_at_10": 0.9615
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.7333,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.8389,
+          "ndcg_at_10": 0.8795
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 0.75,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.875,
+          "ndcg_at_10": 0.9077
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 0.7,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.82,
+          "ndcg_at_10": 0.8649
+        }
+      },
+      "misses_at_5_count": 0
+    },
+    {
+      "method": "vector",
+      "strategy": "heading",
+      "chunks": 430,
+      "recall_at_1": 0.82,
+      "recall_at_5": 1,
+      "mrr_at_10": 0.8907,
+      "ndcg_at_10": 0.9181,
+      "p50_ms": 0.315,
+      "p95_ms": 0.608,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 0.9231,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9615,
+          "ndcg_at_10": 0.9716
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.6667,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.7689,
+          "ndcg_at_10": 0.8253
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 0.8333,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9167,
+          "ndcg_at_10": 0.9385
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 0.9,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.95,
+          "ndcg_at_10": 0.9631
+        }
+      },
+      "misses_at_5_count": 0
+    },
+    {
+      "method": "hybrid",
+      "strategy": "heading",
+      "chunks": 430,
+      "recall_at_1": 0.88,
+      "recall_at_5": 1,
+      "mrr_at_10": 0.9367,
+      "ndcg_at_10": 0.9531,
+      "p50_ms": 0.368,
+      "p95_ms": 0.717,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 1,
+          "recall_at_5": 1,
+          "mrr_at_10": 1,
+          "ndcg_at_10": 1
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.7333,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.8556,
+          "ndcg_at_10": 0.8928
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 0.9167,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9583,
+          "ndcg_at_10": 0.9692
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 0.9,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.95,
+          "ndcg_at_10": 0.9631
+        }
+      },
+      "misses_at_5_count": 0
+    },
+    {
+      "method": "bm25",
+      "strategy": "sentence",
+      "chunks": 690,
+      "recall_at_1": 0.8,
+      "recall_at_5": 1,
+      "mrr_at_10": 0.8823,
+      "ndcg_at_10": 0.9121,
+      "p50_ms": 0.177,
+      "p95_ms": 0.27,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 0.9231,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9487,
+          "ndcg_at_10": 0.9615
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.7333,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.85,
+          "ndcg_at_10": 0.8882
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 0.8333,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9028,
+          "ndcg_at_10": 0.9276
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 0.7,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.82,
+          "ndcg_at_10": 0.8649
+        }
+      },
+      "misses_at_5_count": 0
+    },
+    {
+      "method": "vector",
+      "strategy": "sentence",
+      "chunks": 690,
+      "recall_at_1": 0.78,
+      "recall_at_5": 0.98,
+      "mrr_at_10": 0.859,
+      "ndcg_at_10": 0.8893,
+      "p50_ms": 0.507,
+      "p95_ms": 0.703,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 0.9231,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9385,
+          "ndcg_at_10": 0.9528
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.7333,
+          "recall_at_5": 0.9333,
+          "mrr_at_10": 0.8,
+          "ndcg_at_10": 0.8328
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 0.75,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.875,
+          "ndcg_at_10": 0.9077
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 0.7,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.825,
+          "ndcg_at_10": 0.8693
+        }
+      },
+      "misses_at_5_count": 1
+    },
+    {
+      "method": "hybrid",
+      "strategy": "sentence",
+      "chunks": 690,
+      "recall_at_1": 0.84,
+      "recall_at_5": 1,
+      "mrr_at_10": 0.9033,
+      "ndcg_at_10": 0.9277,
+      "p50_ms": 0.536,
+      "p95_ms": 0.734,
+      "by_category": {
+        "exact": {
+          "count": 13,
+          "recall_at_1": 0.9231,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9423,
+          "ndcg_at_10": 0.9562
+        },
+        "conceptual": {
+          "count": 15,
+          "recall_at_1": 0.8,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.8722,
+          "ndcg_at_10": 0.9041
+        },
+        "mixed": {
+          "count": 12,
+          "recall_at_1": 0.9167,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.9583,
+          "ndcg_at_10": 0.9692
+        },
+        "hard": {
+          "count": 10,
+          "recall_at_1": 0.7,
+          "recall_at_5": 1,
+          "mrr_at_10": 0.8333,
+          "ndcg_at_10": 0.8762
+        }
+      },
+      "misses_at_5_count": 0
+    }
+  ],
+  "head_to_head_heading": {
+    "strategy": "heading",
+    "hybrid_beats_bm25_mrr": 7,
+    "bm25_beats_hybrid_mrr": 2,
+    "hybrid_ties_bm25_mrr": 41,
+    "hybrid_beats_vector_mrr": 7,
+    "vector_beats_hybrid_mrr": 2,
+    "hybrid_ties_vector_mrr": 41,
+    "bm25_wins_examples": [
+      {
+        "id": "q01",
+        "category": "exact",
+        "query": "jsonable_encoder convert pydantic model to json compatible dict",
+        "expected": [
+          "encoder"
+        ],
+        "bm25_rank": 1,
+        "vector_rank": 2,
+        "hybrid_rank": 1,
+        "vector_top1": "first-steps"
+      },
+      {
+        "id": "q20",
+        "category": "conceptual",
+        "query": "accept both uploaded attachments and normal text inputs in one multipart request",
+        "expected": [
+          "request-forms-and-files"
+        ],
+        "bm25_rank": 2,
+        "vector_rank": 3,
+        "hybrid_rank": 2,
+        "vector_top1": "request-files"
+      },
+      {
+        "id": "q21",
+        "category": "conceptual",
+        "query": "run app directly from python script to hit breakpoints in editor",
+        "expected": [
+          "debugging"
+        ],
+        "bm25_rank": 1,
+        "vector_rank": 4,
+        "hybrid_rank": 1,
+        "vector_top1": "first-steps"
+      },
+      {
+        "id": "q22",
+        "category": "conceptual",
+        "query": "push one way live updates from server to browser over http connection",
+        "expected": [
+          "server-sent-events"
+        ],
+        "bm25_rank": 1,
+        "vector_rank": 2,
+        "hybrid_rank": 2,
+        "vector_top1": "body-updates"
+      },
+      {
+        "id": "q25",
+        "category": "conceptual",
+        "query": "mark an older api route as deprecated in generated documentation",
+        "expected": [
+          "path-operation-configuration"
+        ],
+        "bm25_rank": 1,
+        "vector_rank": 5,
+        "hybrid_rank": 1,
+        "vector_top1": "bigger-applications"
+      },
+      {
+        "id": "q31",
+        "category": "mixed",
+        "query": "pydantic model forbid extra form fields",
+        "expected": [
+          "request-form-models"
+        ],
+        "bm25_rank": 1,
+        "vector_rank": 2,
+        "hybrid_rank": 1,
+        "vector_top1": "schema-extra-example"
+      },
+      {
+        "id": "q37",
+        "category": "mixed",
+        "query": "read form urlencoded login username password fields",
+        "expected": [
+          "request-forms"
+        ],
+        "bm25_rank": 1,
+        "vector_rank": 2,
+        "hybrid_rank": 1,
+        "vector_top1": "response-model"
+      }
+    ],
+    "vector_wins_examples": [
+      {
+        "id": "q12",
+        "category": "exact",
+        "query": "Field description title validation on BaseModel attributes",
+        "expected": [
+          "body-fields"
+        ],
+        "bm25_rank": 3,
+        "vector_rank": 1,
+        "hybrid_rank": 1,
+        "bm25_top1": "body"
+      },
+      {
+        "id": "q17",
+        "category": "conceptual",
+        "query": "intercept every incoming request and outgoing response globally to time it",
+        "expected": [
+          "middleware"
+        ],
+        "bm25_rank": 2,
+        "vector_rank": 1,
+        "hybrid_rank": 1,
+        "bm25_top1": "cors"
+      },
+      {
+        "id": "q23",
+        "category": "conceptual",
+        "query": "send newline delimited json objects incrementally as they are generated",
+        "expected": [
+          "stream-json-lines"
+        ],
+        "bm25_rank": 4,
+        "vector_rank": 1,
+        "hybrid_rank": 1,
+        "bm25_top1": "body-nested-models"
+      },
+      {
+        "id": "q35",
+        "category": "mixed",
+        "query": "nested pydantic models list of submodels and unique set types",
+        "expected": [
+          "body-nested-models"
+        ],
+        "bm25_rank": 2,
+        "vector_rank": 1,
+        "hybrid_rank": 1,
+        "bm25_top1": "extra-data-types"
+      },
+      {
+        "id": "q36",
+        "category": "mixed",
+        "query": "response status_code 201 created shortcut constants",
+        "expected": [
+          "response-status-code"
+        ],
+        "bm25_rank": 2,
+        "vector_rank": 1,
+        "hybrid_rank": 1,
+        "bm25_top1": "path-operation-configuration"
+      },
+      {
+        "id": "q38",
+        "category": "mixed",
+        "query": "read browser cookie values with Cookie parameter",
+        "expected": [
+          "cookie-params"
+        ],
+        "bm25_rank": 2,
+        "vector_rank": 1,
+        "hybrid_rank": 2,
+        "bm25_top1": "cookie-param-models"
+      },
+      {
+        "id": "q43",
+        "category": "hard",
+        "query": "parameter ordering trick in python when non-default path param follows default query param",
+        "expected": [
+          "path-params-numeric-validations"
+        ],
+        "bm25_rank": 5,
+        "vector_rank": 1,
+        "hybrid_rank": 1,
+        "bm25_top1": "query-param-models"
+      },
+      {
+        "id": "q45",
+        "category": "hard",
+        "query": "return union of two different pydantic response types using anyOf",
+        "expected": [
+          "extra-models"
+        ],
+        "bm25_rank": 2,
+        "vector_rank": 1,
+        "hybrid_rank": 1,
+        "bm25_top1": "response-model"
+      }
+    ],
+    "both_miss_examples": []
+  },
+  "criterion_native": [
+    {
+      "passages": 500,
+      "bm25_ms": 0.124,
+      "cosine_ms": 0.419,
+      "hybrid_ms": 0.534
+    },
+    {
+      "passages": 2000,
+      "bm25_ms": 0.314,
+      "cosine_ms": 1.363,
+      "hybrid_ms": 1.765
+    },
+    {
+      "passages": 5000,
+      "bm25_ms": 0.419,
+      "cosine_ms": 2.655,
+      "hybrid_ms": 3.926
+    }
+  ]
+}

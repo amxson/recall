@@ -1,0 +1,20 @@
+{
+  "name": "recall-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/amxson/recall"
+  },
+  "files": [
+    "recall_wasm_bg.wasm",
+    "recall_wasm.js",
+    "recall_wasm.d.ts"
+  ],
+  "main": "recall_wasm.js",
+  "types": "recall_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
