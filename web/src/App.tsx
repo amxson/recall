@@ -8,7 +8,9 @@ type ActiveTab = "playground" | "benchmarks";
 const REPO_URL = "https://github.com/amxson/recall";
 
 export default function App() {
-  const [tab, setTab] = useState<ActiveTab>("playground");
+  const [tab, setTab] = useState<ActiveTab>(() =>
+    window.location.hash === "#benchmarks" ? "benchmarks" : "playground"
+  );
   const [handle, setHandle] = useState<DemoEngineHandle | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
 
@@ -98,6 +100,11 @@ export default function App() {
     [handle, query]
   );
 
+  const switchTab = (next: ActiveTab) => {
+    setTab(next);
+    window.history.replaceState(null, "", next === "benchmarks" ? "#benchmarks" : "#search");
+  };
+
   return (
     <div className="page">
       <header className="header">
@@ -132,14 +139,14 @@ export default function App() {
           <button
             type="button"
             className={tab === "playground" ? "nav-tab active" : "nav-tab"}
-            onClick={() => setTab("playground")}
+            onClick={() => switchTab("playground")}
           >
             Live WASM Search
           </button>
           <button
             type="button"
             className={tab === "benchmarks" ? "nav-tab active" : "nav-tab"}
-            onClick={() => setTab("benchmarks")}
+            onClick={() => switchTab("benchmarks")}
           >
             Benchmarks &amp; Failure Analysis
           </button>
@@ -221,7 +228,10 @@ export default function App() {
                   {modelProgress === null && !searching && latency && (
                     <span>
                       <strong>{hits.length}</strong> passages in{" "}
-                      <strong className="em">{latency.searchMs.toFixed(2)} ms</strong> (Rust/WASM)
+                      <strong className="em">
+                        {latency.searchMs < 0.1 ? "<0.1 ms" : `${latency.searchMs.toFixed(2)} ms`}
+                      </strong>{" "}
+                      (Rust/WASM)
                       {mode !== "keyword" && (
                         <>
                           {" · "}
@@ -277,7 +287,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <p className="result-text">{truncate(hit.text, 320)}</p>
+                    <p className="result-text">{truncate(cleanPreview(hit.text), 300)}</p>
 
                     <div className="result-foot">
                       <span className="jump-url">{hit.url}</span>
@@ -479,6 +489,14 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function cleanPreview(s: string): string {
+  return s
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[*_`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function truncate(s: string, max: number): string {

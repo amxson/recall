@@ -4,7 +4,9 @@ Local-first hybrid search for pages you have read. Save a documentation page or 
 
 No server, no account, and no page content leaving the browser. The search engine is written in Rust, compiled to WebAssembly, and paired with local embeddings in an MV3 extension and a browser demo.
 
-<!-- Demo GIF placeholder: add 60s capture once the MV3 extension and web demo are wired up -->
+![Recall live Rust/WASM hybrid search demo](docs/screenshots/recall-search.png)
+
+![Recall reproducible retrieval benchmarks and failure analysis](docs/screenshots/recall-benchmarks.png)
 
 ## Why
 
@@ -77,6 +79,9 @@ wasm-pack build crates/recall-wasm --target web --release
 
 # Typecheck, test, and build the Chrome extension
 cd extension && npm run build && npm run typecheck && npm test
+
+# Run the public zero-install web demo locally (or deploy `web/` directly to Vercel)
+cd web && npm ci --ignore-scripts && npm run dev
 ```
 
 ## Limitations (v0.1 scope)
