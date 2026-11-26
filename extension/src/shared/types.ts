@@ -65,7 +65,7 @@ export interface SearchResponse {
   total_ms: number;
 }
 
-export type OffscreenRequest =
+export type RuntimeRequest =
   | { target: "offscreen"; type: "PING" }
   | { target: "offscreen"; type: "GET_STATS" }
   | { target: "offscreen"; type: "LIST_DOCS" }
@@ -91,6 +91,14 @@ export type OffscreenRequest =
       top_k: number;
     };
 
+export type OffscreenRequest = RuntimeRequest |
+  { target: "offscreen"; type: "GET_SAVE_STATUS"; doc_id: string };
+
+export type SaveStatus =
+  | { state: "saving" }
+  | { state: "saved"; metrics: IndexPageMetrics }
+  | { state: "error"; error: string };
+
 export interface ModelProgressBroadcast {
   target: "popup";
   type: "MODEL_PROGRESS";
@@ -103,6 +111,7 @@ export interface ActiveTabStatus {
   url: string | null;
   saveable: boolean;
   already_saved: boolean;
+  save_status?: SaveStatus;
 }
 
 export type PopupRequest =

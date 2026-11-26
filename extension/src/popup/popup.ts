@@ -2,7 +2,6 @@ import type {
   ActiveTabStatus,
   ChunkingMode,
   DocumentSummary,
-  IndexPageMetrics,
   IndexStats,
   MessageResponse,
   ModelProgressBroadcast,
@@ -35,6 +34,8 @@ let searchSeq = 0;
 let currentHits: SearchResult[] = [];
 let selectedIdx = 0;
 let saveButtonIdleLabel = "Save this page";
+let savePoll: number | undefined;
+let watchingSave = false;
 let clearArmed = false;
 
 async function sendBg<T>(msg: PopupRequest): Promise<T> {
@@ -64,18 +65,44 @@ async function refreshStats(): Promise<void> {
     statsPill.textContent = `${stats.document_count} pages · ${stats.chunk_count} passages`;
     const kb = ((stats.snapshot_bytes ?? 0) / 1024).toFixed(1);
     storageBar.textContent = `IndexedDB: ${kb} KB · ${stats.vector_count} vectors (${stats.embedding_dim}d) · ${stats.vocab_size} terms`;
-    if (!tabStatus.saveable) {
-      saveButtonIdleLabel = "Page not saveable";
-      saveBtn.textContent = saveButtonIdleLabel;
-      saveBtn.disabled = true;
-    } else {
-      saveButtonIdleLabel = tabStatus.already_saved ? "Re-index page" : "Save this page";
-      saveBtn.textContent = saveButtonIdleLabel;
-      saveBtn.disabled = false;
-    }
+    renderSaveStatus(tabStatus);
   } catch (err) {
     showStatus(err instanceof Error ? err.message : String(err), true);
   }
+}
+
+function watchSave(): void {
+  watchingSave = true;
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving in background…";
+  window.clearTimeout(savePoll);
+  savePoll = window.setTimeout(() => {
+    void refreshStats();
+  }, 1000);
+}
+
+function renderSaveStatus(tabStatus: ActiveTabStatus): void {
+  if (tabStatus.save_status?.state === "saving") {
+    watchSave();
+    return;
+  }
+
+  window.clearTimeout(savePoll);
+  saveButtonIdleLabel = tabStatus.saveable
+    ? (tabStatus.already_saved ? "Re-index page" : "Save this page")
+    : "Page not saveable";
+  saveBtn.textContent = saveButtonIdleLabel;
+  saveBtn.disabled = !tabStatus.saveable;
+
+  const result = tabStatus.save_status;
+  if (result?.state === "error") {
+    showStatus(result.error, true);
+  } else if (watchingSave && result?.state === "saved") {
+    showStatus(`Saved ${result.metrics.chunk_count} passages.`);
+    void refreshSavedDocs();
+    if (searchInput.value.trim()) void runSearch();
+  }
+  watchingSave = false;
 }
 
 async function refreshSavedDocs(): Promise<void> {
@@ -272,25 +299,18 @@ async function runSearch(): Promise<void> {
 
 saveBtn.addEventListener("click", async () => {
   saveBtn.disabled = true;
-  saveBtn.textContent = "Indexing…";
-  showStatus("Extracting page and computing local MiniLM embeddings…");
+  saveBtn.textContent = "Reading page…";
+  hideStatus();
 
   try {
-    const metrics = await sendBg<IndexPageMetrics>({
+    await sendBg({
       target: "background",
       type: "SAVE_ACTIVE_TAB",
       strategy: activeChunker,
     });
-    showStatus(
-      `Saved ${metrics.chunk_count} passages in ${Math.round(metrics.total_ms)} ms (embed ${Math.round(metrics.embed_ms)} ms)`
-    );
-    await Promise.all([refreshStats(), refreshSavedDocs()]);
-    if (searchInput.value.trim()) {
-      await runSearch();
-    }
+    watchSave();
   } catch (err) {
     showStatus(err instanceof Error ? err.message : String(err), true);
-  } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = saveButtonIdleLabel;
   }

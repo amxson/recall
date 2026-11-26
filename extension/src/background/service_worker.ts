@@ -5,6 +5,7 @@ import type {
   OffscreenRequest,
   PageExtractPayload,
   PopupRequest,
+  SaveStatus,
 } from "../shared/types";
 import { normalizeUrlToDocId } from "../shared/url";
 
@@ -175,13 +176,15 @@ async function getActiveTabStatus(): Promise<ActiveTabStatus> {
   }
 
   const normalized = normalizeUrlToDocId(url);
-  const resp = await sendToOffscreen<DocumentSummary[]>({
-    target: "offscreen",
-    type: "LIST_DOCS",
-  });
+  const [resp, save] = await Promise.all([
+    sendToOffscreen<DocumentSummary[]>({ target: "offscreen", type: "LIST_DOCS" }),
+    sendToOffscreen<SaveStatus | undefined>({
+      target: "offscreen", type: "GET_SAVE_STATUS", doc_id: normalized,
+    }),
+  ]);
   const alreadySaved =
     resp.ok && resp.data.some((doc) => doc.doc_id === normalized || doc.url === normalized);
-  return { url, saveable: true, already_saved: alreadySaved };
+  return { url, saveable: true, already_saved: alreadySaved, save_status: save.ok ? save.data : undefined };
 }
 
 async function handlePopupRequest(msg: PopupRequest): Promise<MessageResponse> {

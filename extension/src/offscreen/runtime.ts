@@ -4,7 +4,7 @@ import type {
   IndexPageMetrics,
   IndexStats,
   MessageResponse,
-  OffscreenRequest,
+  RuntimeRequest,
   PageExtractPayload,
   SearchMode,
   SearchResponse,
@@ -87,7 +87,7 @@ export class OffscreenRuntime {
     return next;
   }
 
-  async handleMessage(msg: OffscreenRequest): Promise<MessageResponse> {
+  async handleMessage(msg: RuntimeRequest): Promise<MessageResponse> {
     try {
       switch (msg.type) {
         case "PING": {
@@ -148,7 +148,8 @@ export class OffscreenRuntime {
       }
 
       const textsToEmbed = chunks.map((c) => (c.heading ? `${c.heading}\n${c.text}` : c.text));
-      const embedResult = await this.deps.embedBatch(textsToEmbed, 8);
+      // Single-passage batches avoid padding waste on 1-thread WASM and keep mid-index search/status responsive.
+      const embedResult = await this.deps.embedBatch(textsToEmbed, 1);
 
       const tIndexStart = this.deps.now();
       const chunkCount = engine.upsertDocument(

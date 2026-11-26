@@ -26,6 +26,18 @@ export type TextEmbedderFn = (
 let extractorPromise: Promise<TextEmbedderFn> | null = null;
 let configured = false;
 let progressListener: ((event: EmbedderProgress) => void) | null = null;
+let inferenceQueue = Promise.resolve();
+
+async function runInference(input: string | string[]): Promise<Float32Array> {
+  const extractor = await getEmbedder();
+  const result = inferenceQueue.then(async () => {
+    // Let the worker receive search and status messages between CPU-bound batches.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    return (await extractor(input, { pooling: "mean", normalize: true })).data;
+  });
+  inferenceQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
 
 export function setEmbedderProgressListener(
   listener: ((event: EmbedderProgress) => void) | null
@@ -46,8 +58,8 @@ export function configureTransformersForMv3(): void {
     wasmCfg.numThreads = 1;
     wasmCfg.proxy = false;
 
-    if (typeof chrome !== "undefined" && chrome.runtime?.getURL) {
-      wasmCfg.wasmPaths = chrome.runtime.getURL("ort/");
+    if (typeof location !== "undefined" && location.protocol === "chrome-extension:") {
+      wasmCfg.wasmPaths = new URL("/ort/", location.href).href;
     }
   }
 }
@@ -78,9 +90,7 @@ export function getEmbedder(
 }
 
 export async function embedText(text: string): Promise<Float32Array> {
-  const extractor = await getEmbedder();
-  const output = await extractor(text, { pooling: "mean", normalize: true });
-  const data = output.data as Float32Array;
+  const data = await runInference(text);
   return new Float32Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
 }
 
@@ -93,14 +103,12 @@ export async function embedBatch(
   }
 
   const started = performance.now();
-  const extractor = await getEmbedder();
   const vectors: Float32Array[] = [];
   const step = Math.max(1, batchSize);
 
   for (let i = 0; i < texts.length; i += step) {
     const slice = texts.slice(i, i + step);
-    const output = await extractor(slice, { pooling: "mean", normalize: true });
-    const raw = output.data as Float32Array;
+    const raw = await runInference(slice);
     const count = slice.length;
     const dim = raw.length / count;
 
