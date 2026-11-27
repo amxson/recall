@@ -18,8 +18,9 @@ Offscreen Document (offscreen.html / runtime.ts)
   └─ IndexedDB snapshot store (storage/idb.ts)
 ```
 
-- **Why an offscreen document:** MV3 service workers terminate when idle and cannot hold a loaded ONNX/WASM runtime. Hosting `WasmRecallIndex` and the embedding model inside `offscreen.html` and persisting JSON snapshots to IndexedDB keeps the index durable across browser restarts.
+- **Why an offscreen document + module worker:** MV3 service workers terminate when idle and cannot hold a loaded ONNX/WASM runtime. Hosting `offscreen.html` with a dedicated ES module worker (`index-worker.ts`) keeps the popup responsive during indexing, persists text immediately to IndexedDB before computing embeddings, and restores previous state if storage writes fail.
 - **Zero remote code execution:** `onnxruntime-web` WASM/MJS runtime files are bundled locally under `dist/ort/` during the build (`scripts/build-wasm.mjs`). Model weights (`~22.6 MB`) download once from Hugging Face and cache in Chrome's Cache API.
+- **Privacy & Chrome Web Store submission:** See [../PRIVACY.md](../PRIVACY.md) and [STORE_LISTING.md](STORE_LISTING.md).
 
 ## Permissions
 

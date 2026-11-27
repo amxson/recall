@@ -63,7 +63,7 @@ npm run build
 2. Click **Load unpacked** and select `extension/dist`.
 3. Open any documentation page or article, press `Alt+K` (or click the Recall toolbar icon), and click **Save this page**.
 
-See [docs/embedding-spike.md](docs/embedding-spike.md) for measured `all-MiniLM-L6-v2` (`q8`) download size, per-page indexing timings, and MV3 offscreen/CSP notes.
+See [docs/embedding-spike.md](docs/embedding-spike.md) for measured `all-MiniLM-L6-v2` (`q8`) download size, per-page indexing timings, and MV3 offscreen/CSP notes, [PRIVACY.md](PRIVACY.md) for the Chrome Web Store privacy policy, and [extension/STORE_LISTING.md](extension/STORE_LISTING.md) for submission copy and permission justifications.
 
 ## Development
 

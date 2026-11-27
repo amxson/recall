@@ -10,6 +10,7 @@ import type {
   SearchResponse,
   SearchResult,
 } from "../shared/types";
+import { SearchController } from "./search-controller";
 
 const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
 const statsPill = document.getElementById("stats-pill") as HTMLSpanElement;
@@ -30,13 +31,34 @@ const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".mo
 let activeMode: SearchMode = "hybrid";
 let activeChunker: ChunkingMode = "heading";
 let searchTimer: number | null = null;
-let searchSeq = 0;
 let currentHits: SearchResult[] = [];
 let selectedIdx = 0;
 let saveButtonIdleLabel = "Save this page";
 let savePoll: number | undefined;
 let watchingSave = false;
+let lastRefreshedPhase: string | null = null;
 let clearArmed = false;
+
+const searchController = new SearchController({
+  execute: (query, mode) =>
+    sendBg<SearchResponse>({
+      target: "background",
+      type: "SEARCH",
+      query,
+      mode,
+      top_k: 8,
+    }),
+  onSearching: () => {
+    latencyReadout.textContent = "searching…";
+  },
+  onResults: (resp, query) => {
+    renderResults(resp, query);
+  },
+  onError: (message) => {
+    latencyReadout.textContent = "";
+    showStatus(message, true);
+  },
+});
 
 async function sendBg<T>(msg: PopupRequest): Promise<T> {
   const resp = (await chrome.runtime.sendMessage(msg)) as MessageResponse<T>;
@@ -71,10 +93,19 @@ async function refreshStats(): Promise<void> {
   }
 }
 
-function watchSave(): void {
+function watchSave(phase?: "keyword" | "embedding", chunkCount?: number): void {
   watchingSave = true;
   saveBtn.disabled = true;
-  saveBtn.textContent = "Saving in background…";
+  if (phase === "embedding" && chunkCount) {
+    saveBtn.textContent = "Adding semantic index…";
+    showStatus(`Saved ${chunkCount} passages for keyword search · adding semantic embeddings…`);
+    if (lastRefreshedPhase !== "embedding") {
+      lastRefreshedPhase = "embedding";
+      void refreshSavedDocs();
+    }
+  } else {
+    saveBtn.textContent = "Saving in background…";
+  }
   window.clearTimeout(savePoll);
   savePoll = window.setTimeout(() => {
     void refreshStats();
@@ -83,22 +114,40 @@ function watchSave(): void {
 
 function renderSaveStatus(tabStatus: ActiveTabStatus): void {
   if (tabStatus.save_status?.state === "saving") {
-    watchSave();
+    watchSave(tabStatus.save_status.phase, tabStatus.save_status.chunk_count);
     return;
   }
 
   window.clearTimeout(savePoll);
-  saveButtonIdleLabel = tabStatus.saveable
-    ? (tabStatus.already_saved ? "Re-index page" : "Save this page")
-    : "Page not saveable";
+  lastRefreshedPhase = null;
+  const result = tabStatus.save_status;
+  const embeddingsFailed =
+    result?.state === "saved" && result.metrics.embeddings_status === "failed";
+
+  saveButtonIdleLabel = !tabStatus.saveable
+    ? "Page not saveable"
+    : embeddingsFailed
+      ? "Retry semantic index"
+      : tabStatus.already_saved
+        ? "Re-index page"
+        : "Save this page";
   saveBtn.textContent = saveButtonIdleLabel;
   saveBtn.disabled = !tabStatus.saveable;
 
-  const result = tabStatus.save_status;
   if (result?.state === "error") {
     showStatus(result.error, true);
+  } else if (embeddingsFailed && result.state === "saved") {
+    const reason = result.metrics.embedding_error || "local AI model unavailable";
+    showStatus(
+      `Saved ${result.metrics.chunk_count} passages for keyword search. Semantic model unavailable (${reason}) — click Retry semantic index when online.`,
+      true
+    );
+    if (watchingSave) {
+      void refreshSavedDocs();
+      if (searchInput.value.trim()) void runSearch();
+    }
   } else if (watchingSave && result?.state === "saved") {
-    showStatus(`Saved ${result.metrics.chunk_count} passages.`);
+    showStatus(`Saved ${result.metrics.chunk_count} passages (hybrid search ready).`);
     void refreshSavedDocs();
     if (searchInput.value.trim()) void runSearch();
   }
@@ -170,10 +219,17 @@ function renderResults(resp: SearchResponse, query: string): void {
     return;
   }
 
-  latencyReadout.textContent =
-    activeMode === "keyword"
-      ? `search ${resp.search_ms.toFixed(2)} ms`
-      : `embed ${resp.embed_ms.toFixed(0)} ms · search ${resp.search_ms.toFixed(2)} ms`;
+  if (resp.degraded_to_keyword) {
+    latencyReadout.textContent = `keyword fallback · search ${resp.search_ms.toFixed(2)} ms`;
+    if (resp.warning) {
+      showStatus(resp.warning, false);
+    }
+  } else {
+    latencyReadout.textContent =
+      activeMode === "keyword"
+        ? `search ${resp.search_ms.toFixed(2)} ms`
+        : `embed ${resp.embed_ms.toFixed(0)} ms · search ${resp.search_ms.toFixed(2)} ms`;
+  }
 
   if (resp.results.length === 0) {
     resultsList.innerHTML = '<p class="empty">No matching passages found.</p>';
@@ -272,29 +328,7 @@ function buildHitCard(hit: SearchResult): HTMLButtonElement {
 }
 
 async function runSearch(): Promise<void> {
-  const query = searchInput.value;
-  if (!query.trim()) {
-    renderResults({ results: [], embed_ms: 0, search_ms: 0, total_ms: 0 }, "");
-    return;
-  }
-
-  const seq = ++searchSeq;
-  latencyReadout.textContent = "searching…";
-  try {
-    const resp = await sendBg<SearchResponse>({
-      target: "background",
-      type: "SEARCH",
-      query,
-      mode: activeMode,
-      top_k: 8,
-    });
-    if (seq !== searchSeq) return;
-    renderResults(resp, query);
-  } catch (err) {
-    if (seq !== searchSeq) return;
-    latencyReadout.textContent = "";
-    showStatus(err instanceof Error ? err.message : String(err), true);
-  }
+  await searchController.run(searchInput.value, activeMode);
 }
 
 saveBtn.addEventListener("click", async () => {
@@ -337,6 +371,11 @@ searchInput.addEventListener("input", () => {
   hideStatus();
   if (searchTimer !== null) {
     window.clearTimeout(searchTimer);
+    searchTimer = null;
+  }
+  if (!searchInput.value.trim()) {
+    searchController.clear();
+    return;
   }
   searchTimer = window.setTimeout(() => {
     void runSearch();
@@ -400,6 +439,7 @@ clearBtn.addEventListener("click", async () => {
   clearBtn.textContent = "Clearing…";
   try {
     await sendBg({ target: "background", type: "CLEAR_INDEX" });
+    searchController.clear();
     showStatus("Local index cleared.");
     await Promise.all([refreshStats(), refreshSavedDocs()]);
   } catch (err) {

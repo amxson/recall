@@ -1,12 +1,17 @@
 import type { MessageResponse, RuntimeRequest } from "../shared/types";
 import { setEmbedderProgressListener, type EmbedderProgress } from "./embedder";
-import { OffscreenRuntime } from "./runtime";
+import { OffscreenRuntime, type SavePhaseUpdate } from "./runtime";
 
 export type WorkerReply =
   | { id: number; response: MessageResponse }
-  | { progress: EmbedderProgress };
+  | { progress: EmbedderProgress }
+  | { savePhase: SavePhaseUpdate };
 
-const runtime = new OffscreenRuntime();
+const runtime = new OffscreenRuntime({
+  onSavePhase: (savePhase) => {
+    self.postMessage({ savePhase } satisfies WorkerReply);
+  },
+});
 
 setEmbedderProgressListener((progress) => {
   self.postMessage({ progress } satisfies WorkerReply);

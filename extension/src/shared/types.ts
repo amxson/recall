@@ -56,6 +56,8 @@ export interface IndexPageMetrics {
   persist_ms: number;
   total_ms: number;
   snapshot_bytes: number;
+  embeddings_status?: "ready" | "failed";
+  embedding_error?: string;
 }
 
 export interface SearchResponse {
@@ -63,6 +65,8 @@ export interface SearchResponse {
   embed_ms: number;
   search_ms: number;
   total_ms: number;
+  degraded_to_keyword?: boolean;
+  warning?: string;
 }
 
 export type RuntimeRequest =
@@ -95,7 +99,7 @@ export type OffscreenRequest = RuntimeRequest |
   { target: "offscreen"; type: "GET_SAVE_STATUS"; doc_id: string };
 
 export type SaveStatus =
-  | { state: "saving" }
+  | { state: "saving"; phase?: "keyword" | "embedding"; chunk_count?: number }
   | { state: "saved"; metrics: IndexPageMetrics }
   | { state: "error"; error: string };
 

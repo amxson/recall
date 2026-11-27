@@ -1,5 +1,10 @@
 import type {
-  IndexPageMetrics, MessageResponse, ModelProgressBroadcast, OffscreenRequest, RuntimeRequest, SaveStatus,
+  IndexPageMetrics,
+  MessageResponse,
+  ModelProgressBroadcast,
+  OffscreenRequest,
+  RuntimeRequest,
+  SaveStatus,
 } from "../shared/types";
 import { normalizeUrlToDocId } from "../shared/url";
 import type { WorkerReply } from "./index-worker";
@@ -18,6 +23,18 @@ function getWorker(): Worker {
     if ("id" in data) {
       pending.get(data.id)?.(data.response);
       pending.delete(data.id);
+      return;
+    }
+
+    if ("savePhase" in data) {
+      const current = saves.get(data.savePhase.doc_id);
+      if (current?.state === "saving") {
+        saves.set(data.savePhase.doc_id, {
+          state: "saving",
+          phase: data.savePhase.phase,
+          chunk_count: data.savePhase.chunk_count,
+        });
+      }
       return;
     }
 
@@ -78,22 +95,38 @@ async function handleRequest(request: OffscreenRequest): Promise<MessageResponse
     return { ok: true, data: saves.get(request.doc_id) };
   }
   if (request.type !== "INDEX_PAGE") {
-    return requestWorker(request);
+    const response = await requestWorker(request);
+    if (response.ok) {
+      if (request.type === "CLEAR_INDEX") {
+        saves.clear();
+      } else if (request.type === "REMOVE_DOC") {
+        saves.delete(request.doc_id);
+      }
+    }
+    return response;
   }
 
   const docId = normalizeUrlToDocId(request.payload.url);
-  const saving: SaveStatus = { state: "saving" };
+  const saving: SaveStatus = { state: "saving", phase: "keyword" };
   if (saves.get(docId)?.state !== "saving") {
     saves.set(docId, saving);
-    void requestWorker(request).then((response) => {
-      finishSave(docId, response.ok
-        ? { state: "saved", metrics: response.data as IndexPageMetrics }
-        : { state: "error", error: response.error });
-    }).catch((error) => {
-      finishSave(docId, { state: "error", error: error instanceof Error ? error.message : String(error) });
-    });
+    void requestWorker(request)
+      .then((response) => {
+        finishSave(
+          docId,
+          response.ok
+            ? { state: "saved", metrics: response.data as IndexPageMetrics }
+            : { state: "error", error: response.error }
+        );
+      })
+      .catch((error) => {
+        finishSave(docId, {
+          state: "error",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
   }
-  return { ok: true, data: saving };
+  return { ok: true, data: saves.get(docId) ?? saving };
 }
 
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
