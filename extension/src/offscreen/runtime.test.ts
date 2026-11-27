@@ -477,4 +477,112 @@ describe("OffscreenRuntime", () => {
     expect(store.saved?.meta.documentCount).toBe(0);
     runtime.dispose();
   });
+
+  it("reacquires the live engine if clearIndex or storage rollback runs while query embeddings are in flight", async () => {
+    const store: { saved: StoredSnapshot | null } = { saved: null };
+    let failSave = false;
+    let resolveQuery!: (vec: Float32Array) => void;
+    let rejectQuery!: (err: Error) => void;
+
+    const runtime = new OffscreenRuntime({
+      dim: 3,
+      ensureWasm: async () => "0.1.0",
+      loadSnapshot: async () => store.saved,
+      saveSnapshot: async (json, stats) => {
+        if (failSave) {
+          throw new Error("QuotaExceededError");
+        }
+        const meta = {
+          updatedAtMs: Date.now(),
+          byteLength: Buffer.byteLength(json, "utf8"),
+          documentCount: stats.documentCount,
+          chunkCount: stats.chunkCount,
+        };
+        store.saved = { key: "primary", json, meta };
+        return meta;
+      },
+      clearSnapshot: async () => {
+        store.saved = null;
+      },
+      embedText: () =>
+        new Promise<Float32Array>((resolve, reject) => {
+          resolveQuery = resolve;
+          rejectQuery = reject;
+        }),
+      embedBatch: async (texts) => {
+        const flat = new Float32Array(texts.length * 3);
+        texts.forEach((t, idx) => flat.set(stubVector(t), idx * 3));
+        return { flat, dim: 3, elapsedMs: 1 };
+      },
+    });
+
+    await runtime.handleMessage({
+      target: "offscreen",
+      type: "INDEX_PAGE",
+      payload: {
+        url: "https://fastapi.tiangolo.com/tutorial/cors/",
+        title: "CORS",
+        markdown: "# CORS\n\nConfigure Cross-Origin Resource Sharing origins.",
+      },
+    });
+
+    // Case 1: storage rollback replaces the WASM engine while hybrid query embedding is pending
+    const rollbackSearch = runtime.handleMessage({
+      target: "offscreen",
+      type: "SEARCH",
+      query: "origin sharing",
+      mode: "hybrid",
+      top_k: 3,
+    });
+    await new Promise((r) => setTimeout(r, 10));
+    failSave = true;
+    const failedSave = await runtime.handleMessage({
+      target: "offscreen",
+      type: "INDEX_PAGE",
+      payload: {
+        url: "https://example.com/fail",
+        title: "Fail",
+        markdown: "# Fail\n\nShould trigger restoreEngine.",
+      },
+    });
+    expect(failedSave.ok).toBe(false);
+    resolveQuery(stubVector("origin sharing"));
+    const rollbackRes = await rollbackSearch;
+    expect(rollbackRes.ok).toBe(true);
+    expect((rollbackRes as { ok: true; data: SearchResponse }).data.results[0].title).toBe("CORS");
+
+    // Case 2: clearIndex frees the old WASM engine while hybrid query embedding is pending (success path)
+    const clearSearch = runtime.handleMessage({
+      target: "offscreen",
+      type: "SEARCH",
+      query: "origin sharing",
+      mode: "hybrid",
+      top_k: 3,
+    });
+    await new Promise((r) => setTimeout(r, 10));
+    const cleared = await runtime.handleMessage({ target: "offscreen", type: "CLEAR_INDEX" });
+    expect(cleared.ok).toBe(true);
+    resolveQuery(stubVector("origin sharing"));
+    const clearRes = await clearSearch;
+    expect(clearRes.ok).toBe(true);
+    expect((clearRes as { ok: true; data: SearchResponse }).data.results).toEqual([]);
+
+    // Case 3: clearIndex frees the old WASM engine while hybrid query embedding rejects (keyword fallback path)
+    const fallbackSearch = runtime.handleMessage({
+      target: "offscreen",
+      type: "SEARCH",
+      query: "origin",
+      mode: "hybrid",
+      top_k: 3,
+    });
+    await new Promise((r) => setTimeout(r, 10));
+    await runtime.handleMessage({ target: "offscreen", type: "CLEAR_INDEX" });
+    rejectQuery(new Error("offline"));
+    const fallbackRes = await fallbackSearch;
+    expect(fallbackRes.ok).toBe(true);
+    expect((fallbackRes as { ok: true; data: SearchResponse }).data.degraded_to_keyword).toBe(true);
+    expect((fallbackRes as { ok: true; data: SearchResponse }).data.results).toEqual([]);
+
+    runtime.dispose();
+  });
 });

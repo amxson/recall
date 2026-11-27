@@ -353,13 +353,14 @@ export class OffscreenRuntime {
 
   async search(query: string, mode: SearchMode, topK: number): Promise<SearchResponse> {
     const tStart = this.deps.now();
-    const engine = await this.getEngine();
     const trimmed = query.trim();
     if (!trimmed) {
+      await this.getEngine();
       return { results: [], embed_ms: 0, search_ms: 0, total_ms: 0 };
     }
 
     if (mode === "keyword") {
+      const engine = await this.getEngine();
       const tSearch = this.deps.now();
       const results = engine.searchKeyword(trimmed, topK);
       const searchMs = this.deps.now() - tSearch;
@@ -371,6 +372,10 @@ export class OffscreenRuntime {
       };
     }
 
+    // Ensure the index is hydrated first, then reacquire after awaiting embeddings
+    // so concurrent clearIndex() or storage rollback cannot leave a freed WASM handle.
+    await this.getEngine();
+
     let queryVec: Float32Array;
     let embedMs = 0;
     try {
@@ -379,8 +384,9 @@ export class OffscreenRuntime {
       embedMs = this.deps.now() - tEmbed;
     } catch (err) {
       if (mode === "hybrid") {
+        const currentEngine = await this.getEngine();
         const tSearch = this.deps.now();
-        const results = engine.searchKeyword(trimmed, topK);
+        const results = currentEngine.searchKeyword(trimmed, topK);
         const searchMs = this.deps.now() - tSearch;
         return {
           results,
@@ -397,11 +403,12 @@ export class OffscreenRuntime {
       );
     }
 
+    const currentEngine = await this.getEngine();
     const tSearch = this.deps.now();
     const results =
       mode === "semantic"
-        ? engine.searchSemantic(queryVec, topK)
-        : engine.searchHybrid(trimmed, queryVec, topK);
+        ? currentEngine.searchSemantic(queryVec, topK)
+        : currentEngine.searchHybrid(trimmed, queryVec, topK);
     const searchMs = this.deps.now() - tSearch;
 
     return {
